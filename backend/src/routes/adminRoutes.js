@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const userController = require('../controllers/userController');
+const mbtiController = require('../controllers/mbtiController');
 const authMiddleware = require('../middleware/auth');
 
 // 获取用户列表（需要管理员权限）
@@ -23,5 +24,14 @@ router.get('/dashboard/daily', authMiddleware, userController.getDailyStats);
 
 // 获取用户状态列表（需要管理员权限）
 router.get('/user-status', authMiddleware, userController.getUserStatus);
+
+// MBTI管理 - 获取所有用户MBTI结果（需要管理员权限）
+router.get('/mbti/users', authMiddleware, mbtiController.getAllUserResults);
+
+// MBTI管理 - 获取类型分布统计（需要管理员权限）
+router.get('/mbti/distribution', authMiddleware, mbtiController.getTypeDistribution);
+
+// MBTI管理 - 获取单个用户MBTI详情（需要管理员权限）
+router.get('/mbti/users/:userId', authMiddleware, mbtiController.getUserMbtiDetail);
 
 module.exports = router;

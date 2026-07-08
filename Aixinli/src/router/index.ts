@@ -13,6 +13,7 @@ import Treehole from '../components/client/treehole.vue'
 import PostDetail from '../components/client/treehole/PostDetail.vue'
 import Diary from '../components/client/diary.vue'
 import MoodDiaryDetail from '../components/client/mood/MoodDiaryDetail.vue'
+import Mbti from '../components/client/mbti.vue'
 import Error from '../components/404.vue'
 import { useAuthStore } from '../stores/auth'
 
@@ -120,6 +121,24 @@ const routes = [
     component: Profile,
     meta: {
       title: '个人中心',
+      clientAuth: true
+    },
+    beforeEnter: beforeEnterClient
+  },
+  {
+    path: '/mbti',
+    component: Mbti,
+    meta: {
+      title: 'MBTI人格测试',
+      clientAuth: true
+    },
+    beforeEnter: beforeEnterClient
+  },
+  {
+    path: '/relax',
+    component: () => import('../components/client/relax.vue'),
+    meta: {
+      title: '白噪音放松',
       clientAuth: true
     },
     beforeEnter: beforeEnterClient

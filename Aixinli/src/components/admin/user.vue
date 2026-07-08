@@ -15,6 +15,10 @@ import {
   updateUserRole,
   type UserData,
 } from "../../services/adminUser";
+import {
+  getAllUserMbtiResults,
+  type UserMbtiInfo,
+} from "../../services/mbti";
 
 const userList = ref<UserData[]>([]);
 const loading = ref(false);
@@ -26,6 +30,9 @@ const currentPage = ref(1);
 const pageSize = ref(10);
 const total = ref(0);
 const totalPages = ref(0);
+
+// MBTI数据
+const mbtiMap = ref<Record<number, string>>({});
 
 // 当前登录用户信息
 const currentUser = ref<{ id: number; role: string } | null>(null);
@@ -144,15 +151,34 @@ const fetchUserList = async (
     } else {
       ElMessage.error(error.response?.data?.message || "获取用户列表失败");
     }
-  } finally {
+    } finally {
     loading.value = false;
   }
+
+  // 同时获取MBTI数据
+  fetchMbtiData();
 };
 
 // 搜索
 const handleSearch = () => {
   currentPage.value = 1;
   fetchUserList(1, searchKeyword.value);
+};
+
+// 获取MBTI数据
+const fetchMbtiData = async () => {
+  try {
+    const response = await getAllUserMbtiResults(1, 999);
+    if (response.success && response.data) {
+      const map: Record<number, string> = {};
+      response.data.users.forEach((u: UserMbtiInfo) => {
+        map[u.userId] = u.mbtiType;
+      });
+      mbtiMap.value = map;
+    }
+  } catch {
+    // 静默处理
+  }
 };
 
 // 刷新
@@ -427,6 +453,20 @@ onMounted(() => {
               <el-option label="普通用户" value="user" />
               <el-option label="管理员" value="admin" />
             </el-select>
+          </template>
+        </el-table-column>
+
+        <el-table-column prop="mbti" label="MBTI" width="100" align="center">
+          <template #default="{ row }">
+            <el-tag
+              v-if="mbtiMap[row.id]"
+              type="primary"
+              size="large"
+              effect="dark"
+            >
+              {{ mbtiMap[row.id] }}
+            </el-tag>
+            <span v-else style="color: #c0c4cc; font-size: 13px">未测试</span>
           </template>
         </el-table-column>
 

@@ -12,6 +12,7 @@ const aiRoutes = require('./routes/aiRoutes');
 const soulCaveRoutes = require('./routes/soulCaveRoutes');
 const moodDiaryRoutes = require('./routes/moodDiaryRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
+const mbtiRoutes = require('./routes/mbtiRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -37,6 +38,7 @@ app.use('/api/ai', aiRoutes);
 app.use('/api/soulcave', soulCaveRoutes);
 app.use('/api/mood', moodDiaryRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/mbti', mbtiRoutes);
 
 // 测试数据库连接
 db.getConnection((err, connection) => {

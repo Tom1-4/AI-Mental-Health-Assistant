@@ -1,24 +1,20 @@
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from "vue";
+import { ref, reactive, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import {
   Lock,
   User as UserIcon,
-  Sunny,
-  Moon,
   Message,
 } from "@element-plus/icons-vue";
 import { ElMessage } from "element-plus";
-import { useThemeStore } from "../../stores/theme";
 import { useAuthStore } from "../../stores/auth";
-import { storeToRefs } from "pinia";
+import { useThemeStyle } from "../../composables/useThemeStyle";
 
 const defaultAvatar = "/default.jpeg";
 
 const router = useRouter();
-const themeStore = useThemeStore();
 const authStore = useAuthStore();
-const { isDark } = storeToRefs(themeStore);
+const { isDark, containerStyle, toggleTheme } = useThemeStyle();
 
 const registerForm = reactive({
   username: "",
@@ -35,12 +31,6 @@ onMounted(() => {
 });
 
 const loading = ref(false);
-
-const containerStyle = computed(() => ({
-  background: !isDark.value
-    ? "linear-gradient(to bottom, #87CEEB 0%, #E0F6FF 50%, #B0E0E6 100%)"
-    : "linear-gradient(to bottom, #0f0c29 0%, #302b63 50%, #24243e 100%)",
-}));
 
 const handleRegister = async () => {
   if (
@@ -92,10 +82,6 @@ const handleRegister = async () => {
   }
 };
 
-const toggleTheme = () => {
-  themeStore.toggleTheme();
-};
-
 const goToLogin = () => {
   router.push("/");
 };
@@ -104,64 +90,8 @@ const goToLogin = () => {
 <template>
   <div class="register-container" :style="containerStyle">
     <!-- 太阳 -->
-    <div v-if="!isDark" class="celestial-body sun"></div>
-
-    <!-- 月亮 -->
-    <div v-if="isDark" class="celestial-body moon"></div>
-
-    <!-- 云朵 (白天显示) -->
-    <div v-if="!isDark" class="clouds">
-      <div class="cloud cloud-1"></div>
-      <div class="cloud cloud-2"></div>
-      <div class="cloud cloud-3"></div>
-    </div>
-
-    <!-- 流星雨背景 (夜晚显示) -->
-    <div v-if="isDark" class="meteor-shower">
-      <div class="star star-1"></div>
-      <div class="star star-2"></div>
-      <div class="star star-3"></div>
-      <div class="star star-4"></div>
-      <div class="star star-5"></div>
-      <div class="star star-6"></div>
-      <div class="star star-7"></div>
-      <div class="star star-8"></div>
-      <div class="star star-9"></div>
-      <div class="star star-10"></div>
-      <div class="star star-11"></div>
-      <div class="star star-12"></div>
-      <div class="star star-13"></div>
-      <div class="star star-14"></div>
-      <div class="star star-15"></div>
-      <div class="star star-16"></div>
-      <div class="star star-17"></div>
-      <div class="star star-18"></div>
-      <div class="star star-19"></div>
-      <div class="star star-20"></div>
-      <div class="star star-21"></div>
-      <div class="star star-22"></div>
-      <div class="star star-23"></div>
-      <div class="star star-24"></div>
-      <div class="star star-25"></div>
-      <div class="meteor meteor-1"></div>
-      <div class="meteor meteor-2"></div>
-      <div class="meteor meteor-3"></div>
-      <div class="meteor meteor-4"></div>
-      <div class="meteor meteor-5"></div>
-      <div class="meteor meteor-6"></div>
-      <div class="meteor meteor-7"></div>
-      <div class="meteor meteor-8"></div>
-      <div class="meteor meteor-9"></div>
-      <div class="meteor meteor-10"></div>
-    </div>
-
-    <!-- 主题切换按钮 -->
-    <div class="theme-toggle" @click="toggleTheme">
-      <el-icon :size="24" class="toggle-icon">
-        <Sunny v-if="isDark" />
-        <Moon v-else />
-      </el-icon>
-    </div>
+    <!-- 天空装饰 + 主题切换 -->
+    <ThemeDecorations :isDark="isDark" @toggle="toggleTheme" />
 
     <div class="register-box">
       <div class="register-header">

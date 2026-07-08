@@ -1,28 +1,26 @@
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from "vue";
+import { ref, reactive, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import {
   Lock,
   User as UserIcon,
   Message,
-  Sunny,
-  Moon,
   Picture,
   ArrowLeft,
 } from "@element-plus/icons-vue";
 import { ElMessage } from "element-plus";
-import { useThemeStore } from "../../stores/theme";
 import { useAuthStore } from "../../stores/auth";
 import { storeToRefs } from "pinia";
 import { uploadSingleImage } from "../../services/upload";
+import { getMyMbtiResult, type MbtiResult } from "../../services/mbti";
+import { useThemeStyle } from "../../composables/useThemeStyle";
 
 const defaultAvatar = "/default.jpeg";
 
 const router = useRouter();
-const themeStore = useThemeStore();
 const authStore = useAuthStore();
-const { isDark } = storeToRefs(themeStore);
 const { user } = storeToRefs(authStore);
+const { isDark, containerStyle, toggleTheme } = useThemeStyle();
 
 const editForm = reactive({
   username: "",
@@ -38,6 +36,7 @@ const passwordForm = reactive({
   confirmPassword: "",
 });
 const loading = ref(false);
+const mbtiResult = ref<MbtiResult | null>(null);
 
 // 初始化
 onMounted(() => {
@@ -46,13 +45,8 @@ onMounted(() => {
     editForm.email = user.value.email;
     avatarUrl.value = user.value.avatar || defaultAvatar;
   }
+  fetchMbtiData();
 });
-
-const containerStyle = computed(() => ({
-  background: !isDark.value
-    ? "linear-gradient(to bottom, #87CEEB 0%, #E0F6FF 50%, #B0E0E6 100%)"
-    : "linear-gradient(to bottom, #0f0c29 0%, #302b63 50%, #24243e 100%)",
-}));
 
 // 压缩图片
 const compressImage = (file: File, quality: number = 0.7): Promise<Blob> => {
@@ -318,76 +312,31 @@ const handleChangePassword = async () => {
   }
 };
 
-const toggleTheme = () => {
-  themeStore.toggleTheme();
-};
-
 const goBack = () => {
   router.push("/home");
+};
+
+const goToMbti = () => {
+  router.push("/mbti");
+};
+
+// 加载MBTI数据
+const fetchMbtiData = async () => {
+  try {
+    const res = await getMyMbtiResult();
+    if (res.success && res.data) {
+      mbtiResult.value = res.data;
+    }
+  } catch {
+    // 静默处理
+  }
 };
 </script>
 
 <template>
   <div class="profile-container" :style="containerStyle">
-    <!-- 太阳 -->
-    <div v-if="!isDark" class="celestial-body sun"></div>
-
-    <!-- 月亮 -->
-    <div v-if="isDark" class="celestial-body moon"></div>
-
-    <!-- 云朵 (白天显示) -->
-    <div v-if="!isDark" class="clouds">
-      <div class="cloud cloud-1"></div>
-      <div class="cloud cloud-2"></div>
-      <div class="cloud cloud-3"></div>
-    </div>
-
-    <!-- 星星 (夜间显示) -->
-    <div v-if="isDark" class="stars">
-      <div class="star star-1"></div>
-      <div class="star star-2"></div>
-      <div class="star star-3"></div>
-      <div class="star star-4"></div>
-      <div class="star star-5"></div>
-      <div class="star star-6"></div>
-      <div class="star star-7"></div>
-      <div class="star star-8"></div>
-      <div class="star star-9"></div>
-      <div class="star star-10"></div>
-      <div class="star star-11"></div>
-      <div class="star star-12"></div>
-      <div class="star star-13"></div>
-      <div class="star star-14"></div>
-      <div class="star star-15"></div>
-      <div class="star star-16"></div>
-      <div class="star star-17"></div>
-      <div class="star star-18"></div>
-      <div class="star star-19"></div>
-      <div class="star star-20"></div>
-      <div class="star star-21"></div>
-      <div class="star star-22"></div>
-      <div class="star star-23"></div>
-      <div class="star star-24"></div>
-      <div class="star star-25"></div>
-      <div class="meteor meteor-1"></div>
-      <div class="meteor meteor-2"></div>
-      <div class="meteor meteor-3"></div>
-      <div class="meteor meteor-4"></div>
-      <div class="meteor meteor-5"></div>
-      <div class="meteor meteor-6"></div>
-      <div class="meteor meteor-7"></div>
-      <div class="meteor meteor-8"></div>
-      <div class="meteor meteor-9"></div>
-      <div class="meteor meteor-10"></div>
-    </div>
-
-    <!-- 主题切换按钮 -->
-    <div class="theme-toggle" @click="toggleTheme">
-      <el-icon :size="24" class="toggle-icon">
-        <Sunny v-if="isDark" />
-        <Moon v-else />
-      </el-icon>
-    </div>
+    <!-- 天空装饰 + 主题切换 -->
+    <ThemeDecorations :isDark="isDark" @toggle="toggleTheme" />
 
     <div class="profile-box">
       <!-- 返回按钮 -->
@@ -494,6 +443,50 @@ const goBack = () => {
           修改密码
         </el-button>
       </div>
+
+      <!-- MBTI人格测试结果 -->
+      <div class="mbti-section">
+        <h2 class="section-title">MBTI 人格测试</h2>
+        <div v-if="mbtiResult" class="mbti-result-card">
+          <div class="mbti-type-display">
+            <span class="mbti-type-code">{{ mbtiResult.type }}</span>
+            <span class="mbti-type-name">{{ mbtiResult.typeName }}</span>
+          </div>
+          <p class="mbti-type-desc">{{ mbtiResult.typeDescription }}</p>
+          <div class="mbti-traits">
+            <el-tag
+              v-for="trait in mbtiResult.typeTraits"
+              :key="trait"
+              size="small"
+              effect="plain"
+              class="mbti-trait-tag"
+            >
+              {{ trait }}
+            </el-tag>
+          </div>
+          <div class="mbti-dimensions-mini">
+            <div v-for="(dim, key) in mbtiResult.dimensions" :key="key" class="mbti-dim-mini">
+              <span class="dim-mini-label">{{ key }}</span>
+              <div class="dim-mini-bar">
+                <div
+                  class="dim-mini-fill"
+                  :style="{ width: dim.percent + '%' }"
+                ></div>
+              </div>
+              <span class="dim-mini-letter">{{ dim.result }}</span>
+            </div>
+          </div>
+          <el-button size="small" type="primary" @click="goToMbti" class="retake-mbti-btn">
+            重新测试
+          </el-button>
+        </div>
+        <div v-else class="mbti-empty">
+          <p>您还没有完成MBTI人格测试</p>
+          <el-button size="small" type="primary" @click="goToMbti">
+            去测试
+          </el-button>
+        </div>
+      </div>
     </div>
 
     <!-- 修改密码对话框 -->
@@ -561,8 +554,6 @@ const goBack = () => {
 </template>
 
 <style scoped lang="scss">
-@use "sass:math";
-
 .profile-container {
   min-height: 100vh;
   display: flex;
@@ -573,268 +564,6 @@ const goBack = () => {
   overflow: hidden;
   transition: background 1.5s ease-in-out;
   padding: 20px;
-}
-
-/* 太阳/月亮 */
-.celestial-body {
-  position: absolute;
-  width: 120px;
-  height: 120px;
-  border-radius: 50%;
-  top: 15%;
-  right: 10%;
-  transition: all 1.5s ease;
-}
-
-.sun {
-  background: linear-gradient(135deg, #ffd93d 0%, #ff8c00 100%);
-  box-shadow: 0 0 60px rgba(255, 217, 61, 0.6), 0 0 100px rgba(255, 140, 0, 0.4);
-  animation: sunPulse 4s ease-in-out infinite;
-}
-
-.moon {
-  background: linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%);
-  box-shadow: 0 0 40px rgba(255, 255, 255, 0.3),
-    0 0 80px rgba(200, 200, 200, 0.2);
-  animation: moonFloat 6s ease-in-out infinite;
-}
-
-@keyframes sunPulse {
-  0%,
-  100% {
-    transform: scale(1);
-    box-shadow: 0 0 60px rgba(255, 217, 61, 0.6),
-      0 0 100px rgba(255, 140, 0, 0.4);
-  }
-  50% {
-    transform: scale(1.05);
-    box-shadow: 0 0 80px rgba(255, 217, 61, 0.8),
-      0 0 120px rgba(255, 140, 0, 0.5);
-  }
-}
-
-@keyframes moonFloat {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
-}
-
-/* 云朵 */
-.clouds {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  top: 0;
-  left: 0;
-  pointer-events: none;
-  overflow: hidden;
-}
-
-.cloud {
-  position: absolute;
-  background: rgba(255, 255, 255, 0.8);
-  border-radius: 50%;
-  animation: floatCloud 20s ease-in-out infinite;
-}
-
-.cloud::before,
-.cloud::after {
-  content: "";
-  position: absolute;
-  background: rgba(255, 255, 255, 0.8);
-  border-radius: 50%;
-}
-
-.cloud-1 {
-  width: 100px;
-  height: 40px;
-  top: 20%;
-  left: 10%;
-  animation-delay: 0s;
-}
-
-.cloud-1::before {
-  width: 50px;
-  height: 50px;
-  top: -25px;
-  left: 15px;
-}
-
-.cloud-1::after {
-  width: 40px;
-  height: 40px;
-  top: -20px;
-  left: 45px;
-}
-
-.cloud-2 {
-  width: 120px;
-  height: 45px;
-  top: 35%;
-  right: 15%;
-  animation-delay: 5s;
-}
-
-.cloud-2::before {
-  width: 60px;
-  height: 60px;
-  top: -30px;
-  left: 20px;
-}
-
-.cloud-2::after {
-  width: 45px;
-  height: 45px;
-  top: -25px;
-  left: 55px;
-}
-
-.cloud-3 {
-  width: 80px;
-  height: 35px;
-  top: 50%;
-  left: 30%;
-  animation-delay: 10s;
-}
-
-.cloud-3::before {
-  width: 40px;
-  height: 40px;
-  top: -20px;
-  left: 10px;
-}
-
-.cloud-3::after {
-  width: 35px;
-  height: 35px;
-  top: -18px;
-  left: 35px;
-}
-
-@keyframes floatCloud {
-  0%,
-  100% {
-    transform: translateX(0);
-  }
-  50% {
-    transform: translateX(20px);
-  }
-}
-
-/* 星星 */
-.stars {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  top: 0;
-  left: 0;
-  pointer-events: none;
-  overflow: hidden;
-}
-
-.star {
-  position: absolute;
-  background: white;
-  border-radius: 50%;
-  animation: twinkle 3s ease-in-out infinite;
-}
-
-.star:nth-child(odd) {
-  animation-duration: 2s;
-}
-
-.star:nth-child(even) {
-  animation-duration: 4s;
-}
-
-@for $i from 1 through 25 {
-  .star-#{$i} {
-    width: math.random(3) + 1px;
-    height: math.random(3) + 1px;
-    top: math.random(80) + 10%;
-    left: math.random(90) + 5%;
-    animation-delay: math.random(5) s;
-  }
-}
-
-@keyframes twinkle {
-  0%,
-  100% {
-    opacity: 0.3;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.2);
-  }
-}
-
-/* 流星 */
-.meteor {
-  position: absolute;
-  width: 100px;
-  height: 2px;
-  background: linear-gradient(
-    to right,
-    rgba(255, 255, 255, 0),
-    rgba(255, 255, 255, 0.8)
-  );
-  animation: meteorFall linear infinite;
-  opacity: 0;
-}
-
-@for $i from 1 through 10 {
-  .meteor-#{$i} {
-    top: math.random(40) + 10%;
-    left: math.random(100) * 1%;
-    animation-delay: math.random(20) * 1s;
-    animation-duration: math.random(10) * 1s + 5s;
-  }
-}
-
-@keyframes meteorFall {
-  0% {
-    transform: translateX(0) translateY(0) rotate(-45deg);
-    opacity: 0;
-  }
-  10% {
-    opacity: 1;
-  }
-  100% {
-    transform: translateX(-500px) translateY(500px) rotate(-45deg);
-    opacity: 0;
-  }
-}
-
-/* 主题切换按钮 */
-.theme-toggle {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(10px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  z-index: 100;
-
-  &:hover {
-    background: rgba(255, 255, 255, 0.3);
-    transform: scale(1.1);
-  }
-
-  .toggle-icon {
-    color: white;
-  }
 }
 
 .profile-box {
@@ -1055,5 +784,118 @@ const goBack = () => {
 
 :deep(.el-dialog__footer) {
   padding: 10px 20px 20px;
+}
+
+/* MBTI结果卡片 */
+.mbti-section {
+  margin-bottom: 30px;
+}
+
+.mbti-result-card {
+  background: linear-gradient(135deg, #f0f4ff 0%, #e8ebff 100%);
+  border-radius: 16px;
+  padding: 24px;
+  text-align: center;
+
+  .mbti-type-display {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 12px;
+
+    .mbti-type-code {
+      font-size: 32px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: 3px;
+    }
+
+    .mbti-type-name {
+      font-size: 18px;
+      font-weight: 600;
+      color: #475569;
+    }
+  }
+
+  .mbti-type-desc {
+    font-size: 13px;
+    color: #64748b;
+    line-height: 1.6;
+    margin: 0 0 16px;
+  }
+
+  .mbti-traits {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+
+    .mbti-trait-tag {
+      border-radius: 12px;
+    }
+  }
+
+  .mbti-dimensions-mini {
+    display: grid;
+    gap: 8px;
+    margin-bottom: 16px;
+
+    .mbti-dim-mini {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      .dim-mini-label {
+        font-size: 12px;
+        font-weight: 600;
+        color: #94a3b8;
+        min-width: 24px;
+      }
+
+      .dim-mini-bar {
+        flex: 1;
+        height: 6px;
+        background: #e2e8f0;
+        border-radius: 3px;
+        overflow: hidden;
+
+        .dim-mini-fill {
+          height: 100%;
+          background: linear-gradient(90deg, #667eea, #764ba2);
+          border-radius: 3px;
+        }
+      }
+
+      .dim-mini-letter {
+        font-size: 12px;
+        font-weight: 700;
+        color: #667eea;
+        min-width: 14px;
+      }
+    }
+  }
+
+  .retake-mbti-btn {
+    border-radius: 20px;
+  }
+}
+
+.mbti-empty {
+  text-align: center;
+  padding: 24px;
+  background: #f8fafc;
+  border-radius: 16px;
+  border: 2px dashed #e2e8f0;
+
+  p {
+    color: #94a3b8;
+    font-size: 14px;
+    margin: 0 0 12px;
+  }
 }
 </style>

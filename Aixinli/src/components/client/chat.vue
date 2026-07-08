@@ -2,29 +2,22 @@
 import { ref, computed, nextTick, onMounted } from "vue";
 import { ArrowLeft, ChatDotRound, Sunny, Moon } from "@element-plus/icons-vue";
 import { useRouter } from "vue-router";
-import { useThemeStore } from "../../stores/theme";
 import { useAuthStore } from "../../stores/auth";
 import { storeToRefs } from "pinia";
 import { ElMessage } from "element-plus";
+import { useThemeStyle } from "../../composables/useThemeStyle";
 
 const defaultAvatar = "/default.jpeg";
 
 const router = useRouter();
-const themeStore = useThemeStore();
 const authStore = useAuthStore();
-const { isDark } = storeToRefs(themeStore);
 const { user } = storeToRefs(authStore);
+const { isDark, containerStyle, toggleTheme } = useThemeStyle('soft');
 
 // 用户头像 - 如果用户有自定义头像则显示，否则显示默认头像
 const userAvatarUrl = computed(() => {
   return user.value?.avatar || defaultAvatar;
 });
-
-const containerStyle = computed(() => ({
-  background: isDark.value
-    ? "linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)"
-    : "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)",
-}));
 
 const inputMessage = ref("");
 const chatHistory = ref<
@@ -270,10 +263,6 @@ const sendMessage = async () => {
 
 const goBack = () => {
   router.push("/home");
-};
-
-const toggleTheme = () => {
-  themeStore.toggleTheme();
 };
 
 // 组件挂载时加载对话历史

@@ -8,6 +8,7 @@ import {
   Collection,
   Document,
   Refresh,
+  MagicStick,
 } from "@element-plus/icons-vue";
 import { ElMessage } from "element-plus";
 import { use } from "echarts/core";
@@ -26,6 +27,10 @@ import {
   type DailyStats,
   type EmotionDistribution,
 } from "../../services/dashboard";
+import {
+  getMbtiDistribution,
+  type MbtiDistribution,
+} from "../../services/mbti";
 
 use([
   CanvasRenderer,
@@ -63,6 +68,9 @@ const emotionDistribution = ref<EmotionDistribution>({
   neutral: 0,
 });
 
+// MBTI分布
+const mbtiDistribution = ref<MbtiDistribution | null>(null);
+
 // 获取数据
 const fetchData = async () => {
   loading.value = true;
@@ -75,6 +83,17 @@ const fetchData = async () => {
       emotionDistribution.value = response.data.emotionDistribution;
     } else {
       throw new Error("获取数据失败");
+    }
+
+    // 获取MBTI分布
+    try {
+      const mbtiRes = await getMbtiDistribution();
+      if (mbtiRes.success && mbtiRes.data) {
+        mbtiDistribution.value = mbtiRes.data;
+      }
+    } catch {
+      // MBTI数据获取失败不中断主流程
+      mbtiDistribution.value = null;
     }
   } catch (error: any) {
     console.error("获取仪表盘数据失败:", error);
@@ -100,6 +119,9 @@ const emotionPieOption = ref<any>({});
 
 // 活跃度柱状图配置
 const activityBarOption = ref<any>({});
+
+// MBTI类型分布图
+const mbtiPieOption = ref<any>({});
 
 // 初始化图表配置
 const initChartOptions = () => {
@@ -335,6 +357,57 @@ const initChartOptions = () => {
       },
     ],
   };
+
+  // MBTI类型分布图
+  if (mbtiDistribution.value && mbtiDistribution.value.typeDistribution.length > 0) {
+    const mbtiColors = [
+      '#667eea', '#764ba2', '#43e97b', '#f59e0b', '#ec4899',
+      '#3b82f6', '#8b5cf6', '#06b6d4', '#f97316', '#ef4444',
+      '#84cc16', '#14b8a6', '#6366f1', '#d946ef', '#0ea5e9', '#e11d48'
+    ];
+    mbtiPieOption.value = {
+      tooltip: {
+        trigger: 'item',
+        formatter: '{b}: {c}人 ({d}%)',
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        borderColor: '#e0e7ff',
+        textStyle: { color: '#333' },
+      },
+      legend: {
+        type: 'scroll',
+        orient: 'vertical',
+        right: '2%',
+        top: 'center',
+        textStyle: { color: '#64748b', fontSize: 11 },
+        formatter: (name: string) => {
+          const item = mbtiDistribution.value?.typeDistribution.find(d => d.type === name);
+          return item ? `${name} ${item.typeInfo.name}` : name;
+        }
+      },
+      series: [{
+        name: 'MBTI分布',
+        type: 'pie',
+        radius: ['45%', '75%'],
+        center: ['40%', '50%'],
+        avoidLabelOverlap: false,
+        itemStyle: {
+          borderRadius: 6,
+          borderColor: '#fff',
+          borderWidth: 2,
+        },
+        label: { show: false },
+        emphasis: {
+          label: { show: true, fontSize: 14, fontWeight: 'bold' },
+        },
+        labelLine: { show: false },
+        data: mbtiDistribution.value.typeDistribution.map((item, idx) => ({
+          value: item.count,
+          name: item.type,
+          itemStyle: { color: mbtiColors[idx % mbtiColors.length] }
+        })),
+      }],
+    };
+  }
 };
 
 // 页面加载时获取数据
@@ -353,7 +426,7 @@ const updateCharts = () => {
 const stopWatch = ref<() => void>();
 import { watch } from "vue";
 stopWatch.value = watch(
-  [dailyStats, stats, emotionDistribution],
+  [dailyStats, stats, emotionDistribution, mbtiDistribution],
   () => {
     updateCharts();
   },
@@ -425,6 +498,16 @@ stopWatch.value = watch(
           <div class="stat-label">心情日记</div>
         </div>
       </div>
+
+      <div class="stat-card" style="--card-gradient: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)">
+        <div class="stat-icon" style="background: var(--card-gradient)">
+          <el-icon :size="32"><MagicStick /></el-icon>
+        </div>
+        <div class="stat-info">
+          <div class="stat-value">{{ mbtiDistribution?.totalTestedUsers || 0 }}</div>
+          <div class="stat-label">MBTI已测用户</div>
+        </div>
+      </div>
     </div>
 
     <!-- 图表区域 -->
@@ -464,6 +547,16 @@ stopWatch.value = watch(
         </div>
         <div class="chart-body">
           <v-chart class="chart" :option="activityBarOption" autoresize />
+        </div>
+      </div>
+
+      <!-- 第三行：MBTI人格分布 -->
+      <div v-if="mbtiDistribution && mbtiDistribution.typeDistribution.length > 0" class="chart-card chart-wide">
+        <div class="chart-header">
+          <h3>MBTI 人格类型分布</h3>
+        </div>
+        <div class="chart-body">
+          <v-chart class="chart" :option="mbtiPieOption" autoresize />
         </div>
       </div>
     </div>

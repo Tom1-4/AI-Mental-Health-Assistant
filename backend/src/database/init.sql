@@ -63,6 +63,31 @@ CREATE TABLE IF NOT EXISTS soul_cave_comments (
   INDEX idx_created_at (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- MBTI人格测试结果表
+CREATE TABLE IF NOT EXISTS mbti_results (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL COMMENT '用户ID',
+  mbti_type VARCHAR(4) NOT NULL COMMENT 'MBTI类型(如INTJ, ENFP等)',
+  answers JSON NOT NULL COMMENT '28道题目答案',
+  ei_score INT NOT NULL COMMENT 'E/I维度得分',
+  sn_score INT NOT NULL COMMENT 'S/N维度得分',
+  tf_score INT NOT NULL COMMENT 'T/F维度得分',
+  jp_score INT NOT NULL COMMENT 'J/P维度得分',
+  ei_percent INT NOT NULL COMMENT 'E/I维度百分比',
+  sn_percent INT NOT NULL COMMENT 'S/N维度百分比',
+  tf_percent INT NOT NULL COMMENT 'T/F维度百分比',
+  jp_percent INT NOT NULL COMMENT 'J/P维度百分比',
+  type_name VARCHAR(50) NOT NULL COMMENT '人格类型名称',
+  type_traits JSON COMMENT '人格特质列表',
+  type_description TEXT COMMENT '人格类型描述',
+  dimension_desc JSON COMMENT '各维度描述',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '测试时间',
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  INDEX idx_user_id (user_id),
+  INDEX idx_mbti_type (mbti_type),
+  INDEX idx_created_at (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- 心灵树洞点赞记录表
 CREATE TABLE IF NOT EXISTS soul_cave_likes (
   id INT AUTO_INCREMENT PRIMARY KEY,

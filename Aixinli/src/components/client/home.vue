@@ -5,15 +5,15 @@ import {
   User,
   Calendar,
   Clock,
-  Sunny,
-  Moon,
   ArrowDown,
+  MagicStick,
+  Headset,
 } from "@element-plus/icons-vue";
 import { useRouter } from "vue-router";
-import { useThemeStore } from "../../stores/theme";
 import { useAuthStore } from "../../stores/auth";
 import { storeToRefs } from "pinia";
 import { ElMessageBox, ElMessage } from "element-plus";
+import { useThemeStyle } from "../../composables/useThemeStyle";
 
 const defaultAvatar = "/default.jpeg";
 
@@ -43,10 +43,9 @@ const TreeIcon = () => {
 };
 
 const router = useRouter();
-const themeStore = useThemeStore();
 const authStore = useAuthStore();
-const { isDark } = storeToRefs(themeStore);
 const { user } = storeToRefs(authStore);
+const { isDark, containerStyle, toggleTheme } = useThemeStyle();
 
 // 用户头像
 const userAvatarUrl = computed(() => {
@@ -70,16 +69,6 @@ const handleClickOutside = (event: MouseEvent) => {
   }
 };
 
-const containerStyle = computed(() => ({
-  background: !isDark.value
-    ? "linear-gradient(to bottom, #87CEEB 0%, #E0F6FF 50%, #B0E0E6 100%)"
-    : "linear-gradient(to bottom, #0f0c29 0%, #302b63 50%, #24243e 100%)",
-}));
-
-const toggleTheme = () => {
-  themeStore.toggleTheme();
-};
-
 const goToChat = () => {
   router.push("/chat");
 };
@@ -94,6 +83,14 @@ const goToDiary = () => {
 
 const goToProfile = () => {
   router.push("/profile");
+};
+
+const goToMbti = () => {
+  router.push("/mbti");
+};
+
+const goToRelax = () => {
+  router.push("/relax");
 };
 
 const handleLogout = async () => {
@@ -123,60 +120,8 @@ onUnmounted(() => {
 
 <template>
   <div class="home-container" :style="containerStyle">
-    <!-- 太阳 -->
-    <div v-if="!isDark" class="celestial-body sun"></div>
-
-    <!-- 月亮 -->
-    <div v-if="isDark" class="celestial-body moon"></div>
-
-    <!-- 云朵 (白天显示) -->
-    <div v-if="!isDark" class="clouds">
-      <div class="cloud cloud-1"></div>
-      <div class="cloud cloud-2"></div>
-      <div class="cloud cloud-3"></div>
-    </div>
-
-    <!-- 流星雨背景 (夜晚显示) -->
-    <div v-if="isDark" class="meteor-shower">
-      <div class="star star-1"></div>
-      <div class="star star-2"></div>
-      <div class="star star-3"></div>
-      <div class="star star-4"></div>
-      <div class="star star-5"></div>
-      <div class="star star-6"></div>
-      <div class="star star-7"></div>
-      <div class="star star-8"></div>
-      <div class="star star-9"></div>
-      <div class="star star-10"></div>
-      <div class="star star-11"></div>
-      <div class="star star-12"></div>
-      <div class="star star-13"></div>
-      <div class="star star-14"></div>
-      <div class="star star-15"></div>
-      <div class="star star-16"></div>
-      <div class="star star-17"></div>
-      <div class="star star-18"></div>
-      <div class="star star-19"></div>
-      <div class="star star-20"></div>
-      <div class="star star-21"></div>
-      <div class="star star-22"></div>
-      <div class="star star-23"></div>
-      <div class="star star-24"></div>
-      <div class="star star-25"></div>
-      <div class="meteor meteor-1"></div>
-      <div class="meteor meteor-2"></div>
-      <div class="meteor meteor-3"></div>
-      <div class="meteor meteor-4"></div>
-      <div class="meteor meteor-5"></div>
-    </div>
-
-    <!-- 主题切换按钮 -->
-    <div class="theme-toggle" @click="toggleTheme">
-      <el-icon :size="24" class="toggle-icon">
-        <Sunny v-if="isDark" />
-        <Moon v-else />
-      </el-icon>
-    </div>
+    <!-- 天空装饰 + 主题切换 -->
+    <ThemeDecorations :isDark="isDark" @toggle="toggleTheme" />
 
     <!-- 头部导航 -->
     <div class="header">
@@ -201,6 +146,14 @@ onUnmounted(() => {
           <el-button text @click="goToDiary">
             <el-icon><Calendar /></el-icon>
             心情日记
+          </el-button>
+          <el-button text @click="goToMbti">
+            <el-icon><MagicStick /></el-icon>
+            人格测试
+          </el-button>
+          <el-button text @click="goToRelax">
+            <el-icon><Headset /></el-icon>
+            白噪音
           </el-button>
 
           <!-- 用户头像和下拉菜单 -->
@@ -258,7 +211,12 @@ onUnmounted(() => {
             </el-button>
             <el-button size="large" @click="goToTreehole"> 心灵树洞 </el-button>
             <el-button size="large" @click="goToDiary"> 心情日记 </el-button>
+            <el-button size="large" @click="goToMbti"> MBTI人格测试 </el-button>
             <el-button size="large" @click="goToProfile"> 查看档案 </el-button>
+            <el-button size="large" @click="goToRelax">
+              <el-icon><Headset /></el-icon>
+              白噪音放松
+            </el-button>
           </div>
         </div>
 
@@ -286,6 +244,14 @@ onUnmounted(() => {
             <h3>全天候服务</h3>
             <p>24 小时在线，随时为您提供心理健康支持</p>
           </div>
+
+          <div class="feature-card" @click="goToRelax" style="cursor: pointer">
+            <el-icon :size="48" class="feature-icon">
+              <Headset />
+            </el-icon>
+            <h3>白噪音放松</h3>
+            <p>多种自然白噪音，帮助专注工作、改善睡眠质量</p>
+          </div>
         </div>
       </div>
     </div>
@@ -299,183 +265,6 @@ onUnmounted(() => {
   position: relative;
   overflow-x: hidden;
   transition: background 1.5s ease-in-out;
-}
-
-/* 太阳/月亮 */
-.celestial-body {
-  position: absolute;
-  width: 120px;
-  height: 120px;
-  border-radius: 50%;
-  top: 15%;
-  right: 20%;
-}
-
-/* 太阳样式 */
-.celestial-body.sun {
-  background: radial-gradient(circle, #ffd700 0%, #ffa500 50%, #ff8c00 100%);
-  box-shadow: 0 0 60px 20px rgba(255, 215, 0, 0.6),
-    0 0 100px 40px rgba(255, 165, 0, 0.4), 0 0 140px 60px rgba(255, 140, 0, 0.2);
-  animation: sunGlow 3s ease-in-out infinite;
-}
-
-@keyframes sunGlow {
-  0%,
-  100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.05);
-  }
-}
-
-/* 月亮样式 */
-.celestial-body.moon {
-  background: radial-gradient(
-    circle at 30% 30%,
-    #f5f5dc 0%,
-    #e6e6fa 50%,
-    #d8bfd8 100%
-  );
-  box-shadow: 0 0 40px 10px rgba(255, 255, 255, 0.5),
-    inset -15px -15px 20px rgba(0, 0, 0, 0.1);
-}
-
-/* 云朵 */
-.clouds {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  top: 0;
-  left: 0;
-  pointer-events: none;
-  overflow: hidden;
-}
-
-.cloud {
-  position: absolute;
-  background: rgba(255, 255, 255, 0.8);
-  border-radius: 50%;
-  animation: floatCloud 20s ease-in-out infinite;
-}
-
-.cloud::before,
-.cloud::after {
-  content: "";
-  position: absolute;
-  background: rgba(255, 255, 255, 0.8);
-  border-radius: 50%;
-}
-
-.cloud-1 {
-  width: 100px;
-  height: 40px;
-  top: 25%;
-  left: 10%;
-  animation-delay: 0s;
-}
-
-.cloud-1::before {
-  width: 50px;
-  height: 50px;
-  top: -25px;
-  left: 15px;
-}
-
-.cloud-1::after {
-  width: 40px;
-  height: 40px;
-  top: -20px;
-  left: 45px;
-}
-
-.cloud-2 {
-  width: 120px;
-  height: 45px;
-  top: 40%;
-  right: 15%;
-  animation-delay: 5s;
-}
-
-.cloud-2::before {
-  width: 60px;
-  height: 60px;
-  top: -30px;
-  left: 20px;
-}
-
-.cloud-2::after {
-  width: 45px;
-  height: 45px;
-  top: -25px;
-  left: 55px;
-}
-
-.cloud-3 {
-  width: 80px;
-  height: 35px;
-  top: 55%;
-  left: 30%;
-  animation-delay: 10s;
-}
-
-.cloud-3::before {
-  width: 40px;
-  height: 40px;
-  top: -20px;
-  left: 10px;
-}
-
-.cloud-3::after {
-  width: 35px;
-  height: 35px;
-  top: -18px;
-  left: 35px;
-}
-
-@keyframes floatCloud {
-  0%,
-  100% {
-    transform: translateX(0);
-  }
-  50% {
-    transform: translateX(30px);
-  }
-}
-
-/* 主题切换按钮 */
-.theme-toggle {
-  position: absolute;
-  top: 24px;
-  right: 24px;
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(10px);
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  z-index: 100;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-
-  &:hover {
-    background: rgba(255, 255, 255, 0.3);
-    transform: scale(1.1);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
-  }
-
-  &:active {
-    transform: scale(0.95);
-  }
-
-  .toggle-icon {
-    color: #ffffff;
-    transition: color 0.3s ease;
-  }
 }
 
 /* 头部导航 */
@@ -834,266 +623,5 @@ onUnmounted(() => {
   }
 }
 
-/* 流星雨背景 */
-.meteor-shower {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  top: 0;
-  left: 0;
-  pointer-events: none;
-  overflow: hidden;
-}
 
-/* 星星 */
-.star {
-  position: absolute;
-  width: 3px;
-  height: 3px;
-  background: #ffffff;
-  border-radius: 50%;
-  box-shadow: 0 0 6px 2px rgba(255, 255, 255, 0.8);
-  animation: twinkle 2s ease-in-out infinite;
-}
-
-.star-1 {
-  top: 5%;
-  left: 10%;
-  animation-delay: 0s;
-}
-.star-2 {
-  top: 8%;
-  left: 25%;
-  animation-delay: 0.3s;
-  width: 2px;
-  height: 2px;
-}
-.star-3 {
-  top: 12%;
-  left: 40%;
-  animation-delay: 0.6s;
-}
-.star-4 {
-  top: 15%;
-  left: 55%;
-  animation-delay: 0.9s;
-  width: 2px;
-  height: 2px;
-}
-.star-5 {
-  top: 18%;
-  left: 70%;
-  animation-delay: 1.2s;
-}
-.star-6 {
-  top: 20%;
-  left: 85%;
-  animation-delay: 0.1s;
-  width: 2px;
-  height: 2px;
-}
-.star-7 {
-  top: 25%;
-  left: 12%;
-  animation-delay: 1.5s;
-}
-.star-8 {
-  top: 28%;
-  left: 28%;
-  animation-delay: 1.8s;
-}
-.star-9 {
-  top: 30%;
-  left: 45%;
-  animation-delay: 0.2s;
-  width: 2px;
-  height: 2px;
-}
-.star-10 {
-  top: 32%;
-  left: 60%;
-  animation-delay: 0.5s;
-}
-.star-11 {
-  top: 35%;
-  left: 75%;
-  animation-delay: 0.8s;
-  width: 2px;
-  height: 2px;
-}
-.star-12 {
-  top: 38%;
-  left: 90%;
-  animation-delay: 1.1s;
-}
-.star-13 {
-  top: 42%;
-  left: 8%;
-  animation-delay: 1.4s;
-}
-.star-14 {
-  top: 45%;
-  left: 22%;
-  animation-delay: 0.4s;
-  width: 2px;
-  height: 2px;
-}
-.star-15 {
-  top: 48%;
-  left: 38%;
-  animation-delay: 0.7s;
-}
-.star-16 {
-  top: 50%;
-  left: 52%;
-  animation-delay: 1s;
-}
-.star-17 {
-  top: 52%;
-  left: 68%;
-  animation-delay: 0.2s;
-  width: 2px;
-  height: 2px;
-}
-.star-18 {
-  top: 55%;
-  left: 82%;
-  animation-delay: 0.5s;
-}
-.star-19 {
-  top: 58%;
-  left: 15%;
-  animation-delay: 0.8s;
-}
-.star-20 {
-  top: 60%;
-  left: 35%;
-  animation-delay: 1.1s;
-  width: 2px;
-  height: 2px;
-}
-.star-21 {
-  top: 62%;
-  left: 50%;
-  animation-delay: 1.4s;
-}
-.star-22 {
-  top: 65%;
-  left: 65%;
-  animation-delay: 0.3s;
-}
-.star-23 {
-  top: 68%;
-  left: 80%;
-  animation-delay: 0.6s;
-  width: 2px;
-  height: 2px;
-}
-.star-24 {
-  top: 72%;
-  left: 20%;
-  animation-delay: 0.9s;
-}
-.star-25 {
-  top: 75%;
-  left: 45%;
-  animation-delay: 1.2s;
-}
-
-@keyframes twinkle {
-  0%,
-  100% {
-    opacity: 0.3;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.5);
-  }
-}
-
-/* 流星 */
-.meteor {
-  position: absolute;
-  width: 120px;
-  height: 2px;
-  background: linear-gradient(
-    to right,
-    rgba(255, 255, 255, 0.9),
-    rgba(255, 255, 255, 0)
-  );
-  border-radius: 50%;
-  animation: meteorShower linear infinite;
-  opacity: 0;
-}
-
-.meteor::before {
-  content: "";
-  position: absolute;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 4px;
-  height: 4px;
-  background: #ffffff;
-  border-radius: 50%;
-  box-shadow: 0 0 10px 3px rgba(255, 255, 255, 0.9);
-}
-
-.meteor-1 {
-  top: 5%;
-  left: 10%;
-  animation-duration: 3s;
-  animation-delay: 0s;
-}
-
-.meteor-2 {
-  top: 15%;
-  left: 30%;
-  width: 150px;
-  animation-duration: 4s;
-  animation-delay: 1.5s;
-}
-
-.meteor-3 {
-  top: 10%;
-  left: 50%;
-  width: 100px;
-  animation-duration: 3.5s;
-  animation-delay: 2.5s;
-}
-
-.meteor-4 {
-  top: 25%;
-  left: 20%;
-  width: 130px;
-  animation-duration: 4.5s;
-  animation-delay: 0.8s;
-}
-
-.meteor-5 {
-  top: 20%;
-  left: 70%;
-  width: 110px;
-  animation-duration: 3.2s;
-  animation-delay: 2s;
-}
-
-@keyframes meteorShower {
-  0% {
-    transform: translateX(0) translateY(0) rotate(45deg);
-    opacity: 0;
-  }
-  10% {
-    opacity: 1;
-  }
-  90% {
-    opacity: 0.8;
-  }
-  100% {
-    transform: translateX(calc(100vw * 1.5)) translateY(calc(100vw * 1.5))
-      rotate(45deg);
-    opacity: 0;
-  }
-}
 </style>
