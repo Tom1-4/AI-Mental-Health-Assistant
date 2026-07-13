@@ -586,12 +586,12 @@ onMounted(() => {
 
   h3 {
     font-size: 18px; font-weight: 600;
-    color: #fff; margin: 0 0 8px;
+    color: #1a0707; margin: 0 0 8px;
   }
 
   p {
     font-size: 13px;
-    color: rgba(255,255,255,0.6);
+    color: rgba(20, 7, 7, 0.6);
     margin: 0;
     line-height: 1.5;
   }
