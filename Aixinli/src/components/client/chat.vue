@@ -1,6 +1,13 @@
 <script setup lang="ts">
 import { ref, computed, nextTick, onMounted } from "vue";
 import { ArrowLeft, ChatDotRound, Sunny, Moon, WarningFilled } from "@element-plus/icons-vue";
+import { marked } from "marked";
+
+// 配置 marked 安全选项
+marked.setOptions({
+  breaks: true,        // 单个换行符转换为 <br>
+  gfm: true,           // 启用 GitHub Flavored Markdown
+});
 import { useRouter } from "vue-router";
 import { useAuthStore } from "../../stores/auth";
 import { storeToRefs } from "pinia";
@@ -42,6 +49,16 @@ const toggleCrisisBanner = () => {
 };
 
 let activeChatController: AbortController | null = null;
+
+// Markdown 渲染
+const renderMarkdown = (text: string): string => {
+  if (!text) return "";
+  try {
+    return marked.parse(text) as string;
+  } catch {
+    return text.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+};
 
 // 初始欢迎消息
 const showWelcomeMessage = () => {
@@ -378,7 +395,12 @@ const stopChatStream = () => {
           </el-icon>
         </div>
         <div class="message-body">
-          <div class="message-content">{{ message.content }}</div>
+          <div
+            v-if="message.role === 'assistant'"
+            class="message-content markdown-body"
+            v-html="renderMarkdown(message.content)"
+          ></div>
+          <div v-else class="message-content">{{ message.content }}</div>
           <div class="message-time">{{ message.time }}</div>
         </div>
       </div>
@@ -665,6 +687,109 @@ const stopChatStream = () => {
   font-size: 12px;
   color: #94a3b8;
   padding: 0 4px;
+}
+
+/* ==================== Markdown 渲染样式 ==================== */
+.markdown-body {
+  :deep(p) {
+    margin: 0 0 8px;
+    &:last-child { margin-bottom: 0; }
+  }
+
+  :deep(strong) {
+    font-weight: 700;
+    color: #0f172a;
+  }
+
+  :deep(em) {
+    font-style: italic;
+  }
+
+  :deep(ul), :deep(ol) {
+    margin: 4px 0 8px;
+    padding-left: 20px;
+  }
+
+  :deep(li) {
+    margin-bottom: 2px;
+    &::marker { color: #6366f1; }
+  }
+
+  :deep(h1), :deep(h2), :deep(h3), :deep(h4) {
+    margin: 12px 0 6px;
+    font-weight: 700;
+    line-height: 1.3;
+    color: #1e293b;
+  }
+
+  :deep(h1) { font-size: 20px; }
+  :deep(h2) { font-size: 18px; }
+  :deep(h3) { font-size: 16px; }
+  :deep(h4) { font-size: 15px; }
+
+  :deep(code) {
+    background: #f1f5f9;
+    color: #e11d48;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  }
+
+  :deep(pre) {
+    background: #1e293b;
+    color: #e2e8f0;
+    padding: 12px 16px;
+    border-radius: 8px;
+    overflow-x: auto;
+    margin: 8px 0;
+
+    code {
+      background: none;
+      color: inherit;
+      padding: 0;
+      font-size: 13px;
+    }
+  }
+
+  :deep(blockquote) {
+    border-left: 3px solid #6366f1;
+    margin: 8px 0;
+    padding: 4px 14px;
+    background: #f5f3ff;
+    border-radius: 0 6px 6px 0;
+    color: #475569;
+  }
+
+  :deep(a) {
+    color: #6366f1;
+    text-decoration: underline;
+    &:hover { color: #4f46e5; }
+  }
+
+  :deep(hr) {
+    border: none;
+    border-top: 1px solid #e2e8f0;
+    margin: 12px 0;
+  }
+
+  :deep(table) {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 8px 0;
+    font-size: 13px;
+
+    th, td {
+      border: 1px solid #e2e8f0;
+      padding: 6px 12px;
+      text-align: left;
+    }
+
+    th {
+      background: #f8fafc;
+      font-weight: 600;
+    }
+  }
 }
 
 .typing-indicator {

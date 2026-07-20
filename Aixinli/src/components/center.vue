@@ -108,7 +108,7 @@
             </div>
             <div class="bubble-content ai-bubble">
               <div class="bubble-label">AI 回复</div>
-              <div class="bubble-text">{{ record.ai_response }}</div>
+              <div class="bubble-text markdown-body" v-html="renderMarkdown(record.ai_response)"></div>
             </div>
           </div>
         </div>
@@ -135,7 +135,19 @@
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { ChatDotRound, User, Service, Refresh, Loading, WarningFilled } from '@element-plus/icons-vue'
+import { marked } from 'marked'
 import { getAllChatHistory } from '../services/chatHistory'
+
+marked.setOptions({ breaks: true, gfm: true })
+
+const renderMarkdown = (text: string): string => {
+  if (!text) return ''
+  try {
+    return marked.parse(text) as string
+  } catch {
+    return text.replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  }
+}
 import { getUserList } from '../services/adminUser'
 import type { ChatRecord } from '../services/chatHistory'
 import type { UserData } from '../services/adminUser'
@@ -560,6 +572,33 @@ onMounted(() => {
         color: #6366f1;
       }
     }
+  }
+}
+
+/* ==================== Markdown 渲染样式 ==================== */
+.markdown-body {
+  :deep(p) {
+    margin: 0 0 6px;
+    &:last-child { margin-bottom: 0; }
+  }
+  :deep(strong) { font-weight: 700; color: #0f172a; }
+  :deep(em) { font-style: italic; }
+  :deep(ul), :deep(ol) { margin: 4px 0 8px; padding-left: 20px; }
+  :deep(li) { margin-bottom: 2px; &::marker { color: #6366f1; } }
+  :deep(h1) { font-size: 20px; }
+  :deep(h2) { font-size: 18px; }
+  :deep(h3) { font-size: 16px; }
+  :deep(h1), :deep(h2), :deep(h3), :deep(h4) { margin: 12px 0 6px; font-weight: 700; color: #1e293b; }
+  :deep(code) { background: #f1f5f9; color: #e11d48; padding: 2px 6px; border-radius: 4px; font-size: 13px; font-family: monospace; }
+  :deep(pre) { background: #1e293b; color: #e2e8f0; padding: 10px 14px; border-radius: 8px; overflow-x: auto; margin: 8px 0;
+    code { background: none; color: inherit; padding: 0; font-size: 13px; }
+  }
+  :deep(blockquote) { border-left: 3px solid #6366f1; margin: 8px 0; padding: 4px 14px; background: #f5f3ff; border-radius: 0 6px 6px 0; color: #475569; }
+  :deep(a) { color: #6366f1; text-decoration: underline; }
+  :deep(hr) { border: none; border-top: 1px solid #e2e8f0; margin: 12px 0; }
+  :deep(table) { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 13px;
+    th, td { border: 1px solid #e2e8f0; padding: 6px 12px; text-align: left; }
+    th { background: #f8fafc; font-weight: 600; }
   }
 }
 </style>
