@@ -138,16 +138,15 @@ const goToRegister = () => {
           </el-button>
         </el-form-item>
 
-        <el-form-item class="terms-form-item">
-          <el-checkbox v-model="agreeToTerms" class="terms-checkbox">
-            <span class="terms-text">
-              我已阅读并同意
-              <el-link type="primary" underline="always" @click.stop="showTermsDialog = true; termsDialogTitle = '用户服务协议'">《用户服务协议》</el-link>
-              和
-              <el-link type="primary" underline="always" @click.stop="showTermsDialog = true; termsDialogTitle = '隐私政策'">《隐私政策》</el-link>
-            </span>
-          </el-checkbox>
-        </el-form-item>
+        <div class="terms-form-item" @click="agreeToTerms = !agreeToTerms">
+          <span class="terms-check-icon">{{ agreeToTerms ? '☑' : '☐' }}</span>
+          <span class="terms-text">
+            我已阅读并同意
+            <el-link type="primary" underline="always" @click.stop="showTermsDialog = true; termsDialogTitle = '用户服务协议'">《用户服务协议》</el-link>
+            和
+            <el-link type="primary" underline="always" @click.stop="showTermsDialog = true; termsDialogTitle = '隐私政策'">《隐私政策》</el-link>
+          </span>
+        </div>
 
         <div class="login-tips">
           <span class="tip-text">还没有账号？</span>
@@ -627,22 +626,33 @@ const goToRegister = () => {
 }
 
 .terms-form-item {
-  margin-bottom: 8px !important;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding: 4px 4px;
+  cursor: pointer;
+  user-select: none;
+  border-radius: 8px;
+  transition: background 0.15s;
 
-  .terms-checkbox {
-    :deep(.el-checkbox__label) {
-      font-size: 13px;
-      color: #1e293b;
-      line-height: 1.5;
-      padding-left: 8px;
-    }
+  &:hover {
+    background: rgba(0, 0, 0, 0.03);
+  }
 
-    :deep(.el-checkbox__inner) {
-      border-color: #cbd5e1;
-      background: #ffffff;
-    }
+  .terms-check-icon {
+    font-size: 18px;
+    color: #1e293b;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
 
-    .terms-text .el-link {
+  .terms-text {
+    font-size: 13px;
+    color: #1e293b;
+    line-height: 1.6;
+
+    .el-link {
       font-size: 13px;
       vertical-align: baseline;
     }
