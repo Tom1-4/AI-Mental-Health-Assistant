@@ -39,7 +39,7 @@ const authMiddleware = async (req, res, next) => {
 
     // 从数据库获取用户最新信息
     const [users] = await db.query(
-      'SELECT id, username, email, chat_count, last_login_time, role FROM users WHERE id = ?',
+      'SELECT id, username, email, chat_count, last_login_time, role, deleted_at FROM users WHERE id = ?',
       [decoded.id]
     );
 
@@ -50,8 +50,31 @@ const authMiddleware = async (req, res, next) => {
       });
     }
 
+    const user = users[0];
+
+    // 检查软删除状态
+    if (user.deleted_at) {
+      const deletedDate = new Date(user.deleted_at);
+      const now = new Date();
+      const daysSinceDeletion = (now - deletedDate) / (1000 * 60 * 60 * 24);
+
+      if (daysSinceDeletion > 7) {
+        return res.status(403).json({
+          success: false,
+          message: '该账号已注销。如需重新使用，请联系管理员。'
+        });
+      }
+
+      // 7天宽限期内：自动恢复账号
+      await db.query(
+        'UPDATE users SET deleted_at = NULL, deleted_reason = NULL WHERE id = ?',
+        [user.id]
+      );
+      user.deleted_at = null;
+    }
+
     // 将用户信息附加到请求对象
-    req.user = users[0];
+    req.user = user;
     next();
   } catch (error) {
     console.error('认证错误:', error);

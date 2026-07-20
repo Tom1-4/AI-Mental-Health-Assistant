@@ -6,6 +6,7 @@ export interface ChatRecord {
   user_id: number
   user_message: string
   ai_response: string
+  risk_flag?: number
   created_at: string
   username?: string
   email?: string

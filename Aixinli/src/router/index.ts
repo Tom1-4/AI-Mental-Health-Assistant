@@ -14,6 +14,7 @@ import PostDetail from '../components/client/treehole/PostDetail.vue'
 import Diary from '../components/client/diary.vue'
 import MoodDiaryDetail from '../components/client/mood/MoodDiaryDetail.vue'
 import Mbti from '../components/client/mbti.vue'
+import Screening from '../components/client/screening.vue'
 import Error from '../components/404.vue'
 import { useAuthStore } from '../stores/auth'
 
@@ -130,6 +131,24 @@ const routes = [
     component: Mbti,
     meta: {
       title: 'MBTI人格测试',
+      clientAuth: true
+    },
+    beforeEnter: beforeEnterClient
+  },
+  {
+    path: '/phq9',
+    component: Screening,
+    meta: {
+      title: 'PHQ-9 抑郁筛查',
+      clientAuth: true
+    },
+    beforeEnter: beforeEnterClient
+  },
+  {
+    path: '/gad7',
+    component: Screening,
+    meta: {
+      title: 'GAD-7 焦虑筛查',
       clientAuth: true
     },
     beforeEnter: beforeEnterClient

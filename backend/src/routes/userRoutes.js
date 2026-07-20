@@ -24,4 +24,13 @@ router.put('/password', authMiddleware, userController.changePassword);
 // 更新头像（需要认证）
 router.post('/avatar', authMiddleware, userController.updateAvatar);
 
+// 导出用户数据（需要认证）
+router.get('/export', authMiddleware, userController.exportUserData);
+
+// 注销账号（需要认证）
+router.post('/deactivate', authMiddleware, userController.deactivateAccount);
+
+// 恢复账号（需要认证）
+router.put('/recover', authMiddleware, userController.recoverAccount);
+
 module.exports = router;

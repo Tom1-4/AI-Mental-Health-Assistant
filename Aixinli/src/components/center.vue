@@ -79,6 +79,10 @@
             </div>
           </div>
           <div class="conv-meta">
+            <el-tag v-if="record.risk_flag === 1" type="danger" size="small" effect="dark" class="risk-tag">
+              <el-icon><WarningFilled /></el-icon>
+              需关注
+            </el-tag>
             <span class="conv-id">#{{ record.id }}</span>
             <span class="conv-time">{{ formatTime(record.created_at) }}</span>
           </div>
@@ -130,7 +134,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { ChatDotRound, User, Service, Refresh, Loading } from '@element-plus/icons-vue'
+import { ChatDotRound, User, Service, Refresh, Loading, WarningFilled } from '@element-plus/icons-vue'
 import { getAllChatHistory } from '../services/chatHistory'
 import { getUserList } from '../services/adminUser'
 import type { ChatRecord } from '../services/chatHistory'
@@ -421,6 +425,11 @@ onMounted(() => {
   .conv-time {
     font-size: 12px;
     color: #94a3b8;
+  }
+
+  .risk-tag {
+    font-weight: 600;
+    .el-icon { margin-right: 2px; }
   }
 }
 

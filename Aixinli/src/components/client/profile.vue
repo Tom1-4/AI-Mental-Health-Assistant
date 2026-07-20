@@ -7,6 +7,8 @@ import {
   Message,
   Picture,
   ArrowLeft,
+  Download,
+  WarningFilled,
 } from "@element-plus/icons-vue";
 import { ElMessage } from "element-plus";
 import { useAuthStore } from "../../stores/auth";
@@ -320,6 +322,83 @@ const goToMbti = () => {
   router.push("/mbti");
 };
 
+const goToScreening = (type: string) => {
+  router.push(`/${type}`);
+};
+
+// 数据导出
+const exportingData = ref(false);
+const handleExportData = async () => {
+  exportingData.value = true;
+  try {
+    const token = authStore.token;
+    const response = await fetch("http://localhost:3000/api/users/export", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!response.ok) throw new Error("导出失败");
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `mental-health-data-${Date.now()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+    ElMessage.success("数据导出成功");
+  } catch (error) {
+    ElMessage.error("数据导出失败");
+  } finally {
+    exportingData.value = false;
+  }
+};
+
+// 账号注销
+const showDeactivateDialog = ref(false);
+const deactivating = ref(false);
+const deactivateForm = reactive({
+  password: "",
+  reason: "",
+});
+
+const handleDeactivate = async () => {
+  if (!deactivateForm.password) {
+    ElMessage.warning("请输入密码");
+    return;
+  }
+  deactivating.value = true;
+  try {
+    const token = authStore.token;
+    const response = await fetch(
+      "http://localhost:3000/api/users/deactivate",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          password: deactivateForm.password,
+          reason: deactivateForm.reason || undefined,
+        }),
+      }
+    );
+    const data = await response.json();
+    if (data.success) {
+      ElMessage.success(data.message);
+      showDeactivateDialog.value = false;
+      await authStore.logout();
+      router.push("/");
+    } else {
+      ElMessage.error(data.message || "注销失败");
+    }
+  } catch (error) {
+    ElMessage.error("注销失败，请稍后重试");
+  } finally {
+    deactivating.value = false;
+  }
+};
+
 // 加载MBTI数据
 const fetchMbtiData = async () => {
   try {
@@ -444,6 +523,64 @@ const fetchMbtiData = async () => {
         </el-button>
       </div>
 
+      <!-- 心理测评入口 -->
+      <div class="screening-section">
+        <h2 class="section-title">心理测评</h2>
+        <div class="screening-cards">
+          <div class="screening-card" @click="goToScreening('phq9')">
+            <div class="screening-card-header">
+              <span class="screening-icon">📋</span>
+              <h3>PHQ-9 抑郁筛查</h3>
+            </div>
+            <p>9道题 · 约2分钟</p>
+            <el-button size="small" type="primary" round>开始测评</el-button>
+          </div>
+          <div class="screening-card" @click="goToScreening('gad7')">
+            <div class="screening-card-header">
+              <span class="screening-icon">🧠</span>
+              <h3>GAD-7 焦虑筛查</h3>
+            </div>
+            <p>7道题 · 约2分钟</p>
+            <el-button size="small" type="primary" round>开始测评</el-button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 数据管理 -->
+      <div class="data-section">
+        <h2 class="section-title">数据管理</h2>
+        <el-button
+          type="primary"
+          size="large"
+          @click="handleExportData"
+          :loading="exportingData"
+          class="export-button"
+        >
+          <el-icon><Download /></el-icon>
+          导出我的数据
+        </el-button>
+        <p class="export-hint">导出个人资料、对话记录、心情日记、MBTI结果和测评结果</p>
+      </div>
+
+      <!-- 危险操作 -->
+      <div class="danger-section">
+        <h2 class="section-title danger-title">危险操作</h2>
+        <div class="danger-card">
+          <p class="danger-desc">
+            注销账号后，您的数据将保留7天。在此期间重新登录可自动恢复账号。7天后账号将被永久删除，所有数据将无法恢复。
+          </p>
+          <el-button
+            type="danger"
+            size="large"
+            @click="showDeactivateDialog = true"
+            class="deactivate-btn"
+          >
+            <el-icon><WarningFilled /></el-icon>
+            注销账号
+          </el-button>
+        </div>
+      </div>
+
       <!-- MBTI人格测试结果 -->
       <div class="mbti-section">
         <h2 class="section-title">MBTI 人格测试</h2>
@@ -548,6 +685,52 @@ const fetchMbtiData = async () => {
           @click="handleChangePassword"
           >确定</el-button
         >
+      </template>
+    </el-dialog>
+
+    <!-- 注销账号对话框 -->
+    <el-dialog
+      v-model="showDeactivateDialog"
+      title="注销账号"
+      width="450px"
+      :close-on-click-modal="false"
+    >
+      <div class="deactivate-warning">
+        <el-alert type="error" :closable="false" show-icon>
+          <template #title>
+            此操作不可逆。注销后7天内可重新登录恢复账号，7天后所有数据将被永久删除。
+          </template>
+        </el-alert>
+      </div>
+      <el-form label-position="top" class="deactivate-form">
+        <el-form-item label="请输入密码确认">
+          <el-input
+            v-model="deactivateForm.password"
+            type="password"
+            placeholder="请输入当前密码"
+            size="large"
+            show-password
+          />
+        </el-form-item>
+        <el-form-item label="注销原因（选填）">
+          <el-input
+            v-model="deactivateForm.reason"
+            type="textarea"
+            :rows="2"
+            placeholder="帮助我们改进，请告诉我们注销原因"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showDeactivateDialog = false">取消</el-button>
+        <el-button
+          type="danger"
+          :loading="deactivating"
+          @click="handleDeactivate"
+          :disabled="!deactivateForm.password"
+        >
+          确认注销
+        </el-button>
       </template>
     </el-dialog>
   </div>
@@ -897,5 +1080,122 @@ const fetchMbtiData = async () => {
     font-size: 14px;
     margin: 0 0 12px;
   }
+}
+
+/* 心理测评入口 */
+.screening-section {
+  margin-bottom: 30px;
+
+  .screening-cards {
+    display: flex;
+    gap: 12px;
+
+    .screening-card {
+      flex: 1;
+      background: #f8fafc;
+      border-radius: 16px;
+      padding: 20px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border: 2px solid transparent;
+      text-align: center;
+
+      &:hover {
+        border-color: #6366f1;
+        box-shadow: 0 4px 16px rgba(99, 102, 241, 0.1);
+        transform: translateY(-2px);
+      }
+
+      .screening-card-header {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        margin-bottom: 4px;
+
+        .screening-icon {
+          font-size: 20px;
+        }
+
+        h3 {
+          margin: 0;
+          font-size: 15px;
+          font-weight: 600;
+          color: #1e293b;
+        }
+      }
+
+      p {
+        color: #94a3b8;
+        font-size: 12px;
+        margin: 4px 0 12px;
+      }
+    }
+  }
+}
+
+/* 数据管理 */
+.data-section {
+  margin-bottom: 30px;
+
+  .export-button {
+    width: 100%;
+    border-radius: 12px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 8px;
+
+    &:hover {
+      transform: translateY(-2px);
+    }
+  }
+
+  .export-hint {
+    font-size: 12px;
+    color: #94a3b8;
+    text-align: center;
+    margin: 0;
+  }
+}
+
+/* 危险操作 */
+.danger-section {
+  margin-bottom: 30px;
+
+  .danger-title {
+    color: #f56c6c;
+    border-bottom-color: rgba(245, 108, 108, 0.2);
+  }
+
+  .danger-card {
+    background: #fef0f0;
+    border: 1px solid #fde2e2;
+    border-radius: 12px;
+    padding: 20px;
+
+    .danger-desc {
+      color: #dc2626;
+      font-size: 13px;
+      line-height: 1.6;
+      margin: 0 0 16px;
+    }
+
+    .deactivate-btn {
+      width: 100%;
+      border-radius: 12px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+  }
+}
+
+.deactivate-warning {
+  margin-bottom: 20px;
 }
 </style>

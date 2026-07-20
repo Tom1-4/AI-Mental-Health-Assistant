@@ -106,9 +106,9 @@ exports.login = async (req, res) => {
       });
     }
 
-    // 查询用户（包括 role 字段）
+    // 查询用户（包括 role 字段和软删除状态）
     const [users] = await db.query(
-      'SELECT id, username, email, password, role, avatar, chat_count, last_login_time FROM users WHERE username = ? OR email = ?',
+      'SELECT id, username, email, password, role, avatar, chat_count, last_login_time, deleted_at FROM users WHERE username = ? OR email = ?',
       [username, username]
     );
 
@@ -120,6 +120,22 @@ exports.login = async (req, res) => {
     }
 
     const user = users[0];
+
+    // 检查软删除状态
+    if (user.deleted_at) {
+      const daysSinceDeletion = (Date.now() - new Date(user.deleted_at)) / (1000 * 60 * 60 * 24);
+      if (daysSinceDeletion > 7) {
+        return res.status(403).json({
+          success: false,
+          message: '该账号已注销。如需重新使用，请联系管理员。'
+        });
+      }
+      // 7天宽限期内：自动恢复账号
+      await db.query(
+        'UPDATE users SET deleted_at = NULL, deleted_reason = NULL WHERE id = ?',
+        [user.id]
+      );
+    }
 
     // 使用 bcrypt 比较密码
     const isPasswordValid = await bcrypt.compare(password, user.password);
@@ -1105,6 +1121,150 @@ exports.getUserStatus = async (req, res) => {
       success: false,
       message: '服务器错误'
     });
+  }
+};
+
+// 导出用户数据
+exports.exportUserData = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // 获取用户资料
+    const [profileRows] = await db.query(
+      'SELECT id, username, email, role, avatar, chat_count, last_login_time, created_at FROM users WHERE id = ?',
+      [userId]
+    );
+    if (profileRows.length === 0) {
+      return res.status(404).json({ success: false, message: '用户不存在' });
+    }
+
+    // 获取聊天记录
+    const [chatHistory] = await db.query(
+      'SELECT id, user_message, ai_response, risk_flag, created_at FROM chat_history WHERE user_id = ? ORDER BY created_at ASC',
+      [userId]
+    );
+
+    // 获取心情日记
+    const [moodDiaries] = await db.query(
+      'SELECT id, title, content, mood, diary_date, created_at FROM mood_diaries WHERE user_id = ? ORDER BY diary_date ASC',
+      [userId]
+    );
+
+    // 获取MBTI结果
+    const [mbtiResults] = await db.query(
+      'SELECT id, mbti_type, type_name, type_description, ei_score, sn_score, tf_score, jp_score, created_at FROM mbti_results WHERE user_id = ? ORDER BY created_at DESC',
+      [userId]
+    );
+
+    // 获取筛查结果
+    let screeningResults = [];
+    try {
+      const [screening] = await db.query(
+        'SELECT id, test_type, total_score, severity, created_at FROM screening_results WHERE user_id = ? ORDER BY created_at DESC',
+        [userId]
+      );
+      screeningResults = screening;
+    } catch {
+      // screening_results 表可能还不存在
+    }
+
+    const exportData = {
+      exportedAt: new Date().toISOString(),
+      profile: profileRows[0],
+      statistics: {
+        totalChats: chatHistory.length,
+        totalDiaries: moodDiaries.length,
+        totalMbtiTests: mbtiResults.length,
+        totalScreeningTests: screeningResults.length,
+      },
+      chatHistory,
+      moodDiaries,
+      mbtiResults,
+      screeningResults,
+    };
+
+    // 发送为可下载的JSON文件
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="my-mental-health-data-${Date.now()}.json"`);
+    res.status(200).json({
+      success: true,
+      data: exportData,
+    });
+  } catch (error) {
+    console.error('导出用户数据错误:', error);
+    res.status(500).json({ success: false, message: '服务器错误' });
+  }
+};
+
+// 注销账号（软删除）
+exports.deactivateAccount = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { password, reason } = req.body;
+
+    // 验证密码
+    if (!password) {
+      return res.status(400).json({ success: false, message: '请输入密码以确认注销' });
+    }
+
+    // 验证用户存在及密码
+    const [users] = await db.query(
+      'SELECT password, deleted_at FROM users WHERE id = ?',
+      [userId]
+    );
+    if (users.length === 0) {
+      return res.status(404).json({ success: false, message: '用户不存在' });
+    }
+
+    // 已经注销
+    if (users[0].deleted_at) {
+      return res.status(400).json({ success: false, message: '账号已经注销' });
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, users[0].password);
+    if (!isPasswordValid) {
+      return res.status(400).json({ success: false, message: '密码错误，注销失败' });
+    }
+
+    // 软删除：设置 deleted_at 时间戳
+    await db.query(
+      'UPDATE users SET deleted_at = NOW(), deleted_reason = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      [reason || null, userId]
+    );
+
+    res.status(200).json({
+      success: true,
+      message: '账号注销申请已提交。在7天内重新登录可自动恢复账号，7天后将永久删除。'
+    });
+  } catch (error) {
+    console.error('注销账号错误:', error);
+    res.status(500).json({ success: false, message: '服务器错误' });
+  }
+};
+
+// 恢复账号
+exports.recoverAccount = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const [users] = await db.query(
+      'SELECT deleted_at FROM users WHERE id = ?',
+      [userId]
+    );
+
+    if (!users[0]?.deleted_at) {
+      return res.status(400).json({ success: false, message: '账号未被注销，无需恢复' });
+    }
+
+    await db.query(
+      'UPDATE users SET deleted_at = NULL, deleted_reason = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      [userId]
+    );
+
+    res.status(200).json({ success: true, message: '账号已恢复' });
+  } catch (error) {
+    console.error('恢复账号错误:', error);
+    res.status(500).json({ success: false, message: '服务器错误' });
   }
 };
 

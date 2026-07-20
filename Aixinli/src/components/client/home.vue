@@ -92,6 +92,9 @@ const goToMbti = () => {
 const goToRelax = () => {
   router.push("/relax");
 };
+const goToScreening = (type: string) => {
+  router.push(`/${type}`);
+};
 
 const handleLogout = async () => {
   try {
@@ -212,6 +215,8 @@ onUnmounted(() => {
             <el-button size="large" @click="goToTreehole"> 心灵树洞 </el-button>
             <el-button size="large" @click="goToDiary"> 心情日记 </el-button>
             <el-button size="large" @click="goToMbti"> MBTI人格测试 </el-button>
+            <el-button size="large" @click="goToScreening('phq9')"> 抑郁筛查 </el-button>
+            <el-button size="large" @click="goToScreening('gad7')"> 焦虑筛查 </el-button>
             <el-button size="large" @click="goToProfile"> 查看档案 </el-button>
             <el-button size="large" @click="goToRelax">
               <el-icon><Headset /></el-icon>

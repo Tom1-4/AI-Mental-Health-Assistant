@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, nextTick, onMounted } from "vue";
-import { ArrowLeft, ChatDotRound, Sunny, Moon } from "@element-plus/icons-vue";
+import { ArrowLeft, ChatDotRound, Sunny, Moon, WarningFilled } from "@element-plus/icons-vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "../../stores/auth";
 import { storeToRefs } from "pinia";
@@ -26,6 +26,21 @@ const chatHistory = ref<
 const isTyping = ref(false);
 const chatContent = ref<HTMLElement | null>(null);
 const isLoadingHistory = ref(true);
+
+// 危机干预
+const showCrisisBanner = ref(false);
+const crisisHotlines = ref<Array<{ name: string; number: string; desc: string }>>([]);
+const toggleCrisisBanner = () => {
+  showCrisisBanner.value = !showCrisisBanner.value;
+  if (showCrisisBanner.value && crisisHotlines.value.length === 0) {
+    crisisHotlines.value = [
+      { name: '希望24热线', number: '400-161-9995', desc: '24小时心理危机干预' },
+      { name: '北京心理危机干预中心', number: '010-82951332', desc: '专业危机干预' },
+      { name: '全国心理援助热线', number: '12320', desc: '国家卫生健康热线' },
+    ];
+  }
+};
+
 let activeChatController: AbortController | null = null;
 
 // 初始欢迎消息
@@ -164,6 +179,16 @@ const sendMessage = async () => {
         scrollToBottom();
       }
 
+      if (parsedData.type === 'crisis_alert') {
+        showCrisisBanner.value = true;
+        crisisHotlines.value = parsedData.hotlines || [
+          { name: '希望24热线', number: '400-161-9995', desc: '24小时心理危机干预' },
+          { name: '北京心理危机干预中心', number: '010-82951332', desc: '专业危机干预' },
+          { name: '全国心理援助热线', number: '12320', desc: '国家卫生健康热线' },
+        ];
+        scrollToBottom();
+      }
+
       if (parsedData.error) {
         ElMessage.error(parsedData.error);
         chatHistory.value[aiMessageIndex].content =
@@ -285,11 +310,37 @@ const stopChatStream = () => {
       </el-button>
       <h2 class="chat-title">AI 心理健康助手</h2>
       <div class="header-actions">
+        <el-button
+          type="danger"
+          size="small"
+          plain
+          @click="toggleCrisisBanner"
+          class="crisis-help-btn"
+        >
+          <el-icon><WarningFilled /></el-icon>
+          危机帮助
+        </el-button>
         <div class="theme-toggle" @click="toggleTheme">
           <el-icon :size="20" class="toggle-icon">
             <Sunny v-if="isDark" />
             <Moon v-else />
           </el-icon>
+        </div>
+      </div>
+    </div>
+
+    <!-- 危机干预横幅 -->
+    <div v-if="showCrisisBanner" class="crisis-banner">
+      <div class="crisis-banner-header">
+        <el-icon :size="20"><WarningFilled /></el-icon>
+        <span>如果你正在经历心理危机，请立即拨打求助热线</span>
+        <el-button text @click="showCrisisBanner = false" class="crisis-close">✕</el-button>
+      </div>
+      <div class="crisis-hotlines">
+        <div v-for="hotline in crisisHotlines" :key="hotline.number" class="hotline-card">
+          <div class="hotline-name">{{ hotline.name }}</div>
+          <div class="hotline-number">{{ hotline.number }}</div>
+          <div class="hotline-desc">{{ hotline.desc }}</div>
         </div>
       </div>
     </div>
@@ -424,6 +475,81 @@ const stopChatStream = () => {
 
     .toggle-icon {
       color: #ffffff;
+    }
+  }
+
+  .crisis-help-btn {
+    border-color: rgba(255, 255, 255, 0.6) !important;
+    color: #ffffff !important;
+    background: rgba(255, 255, 255, 0.1) !important;
+    font-size: 13px;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.25) !important;
+      border-color: #ffffff !important;
+    }
+  }
+}
+
+/* 危机干预横幅 */
+.crisis-banner {
+  background: linear-gradient(135deg, #fef2f2 0%, #fff5f5 100%);
+  border: 1px solid #fecaca;
+  border-width: 1px 0;
+  padding: 16px 24px;
+
+  .crisis-banner-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #dc2626;
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 14px;
+
+    .crisis-close {
+      margin-left: auto;
+      color: #94a3b8;
+      font-size: 16px;
+      padding: 2px 6px;
+
+      &:hover {
+        color: #dc2626;
+      }
+    }
+  }
+
+  .crisis-hotlines {
+    display: flex;
+    gap: 12px;
+
+    .hotline-card {
+      flex: 1;
+      background: #ffffff;
+      border-radius: 10px;
+      padding: 12px 16px;
+      text-align: center;
+      border: 1px solid #fee2e2;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+
+      .hotline-name {
+        font-size: 12px;
+        color: #64748b;
+        margin-bottom: 4px;
+      }
+
+      .hotline-number {
+        font-size: 18px;
+        font-weight: 800;
+        color: #dc2626;
+        margin-bottom: 2px;
+        letter-spacing: 0.5px;
+      }
+
+      .hotline-desc {
+        font-size: 11px;
+        color: #94a3b8;
+      }
     }
   }
 }
