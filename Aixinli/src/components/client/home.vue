@@ -182,6 +182,20 @@ onUnmounted(() => {
                 <el-icon><User /></el-icon>
                 <span>个人中心</span>
               </div>
+              <div class="menu-section-label">心理测评</div>
+              <div class="menu-item" @click="goToMbti">
+                <el-icon><MagicStick /></el-icon>
+                <span>MBTI 人格测试</span>
+              </div>
+              <div class="menu-item" @click="goToScreening('phq9')">
+                <span class="menu-item-icon">📋</span>
+                <span>PHQ-9 抑郁筛查</span>
+              </div>
+              <div class="menu-item" @click="goToScreening('gad7')">
+                <span class="menu-item-icon">🧠</span>
+                <span>GAD-7 焦虑筛查</span>
+              </div>
+              <div class="menu-divider"></div>
               <div class="menu-item menu-item-danger" @click="handleLogout">
                 <el-icon><User /></el-icon>
                 <span>退出登录</span>
@@ -214,10 +228,6 @@ onUnmounted(() => {
             </el-button>
             <el-button size="large" @click="goToTreehole"> 心灵树洞 </el-button>
             <el-button size="large" @click="goToDiary"> 心情日记 </el-button>
-            <el-button size="large" @click="goToMbti"> MBTI人格测试 </el-button>
-            <el-button size="large" @click="goToScreening('phq9')"> 抑郁筛查 </el-button>
-            <el-button size="large" @click="goToScreening('gad7')"> 焦虑筛查 </el-button>
-            <el-button size="large" @click="goToProfile"> 查看档案 </el-button>
             <el-button size="large" @click="goToRelax">
               <el-icon><Headset /></el-icon>
               白噪音放松
@@ -248,14 +258,6 @@ onUnmounted(() => {
             </el-icon>
             <h3>全天候服务</h3>
             <p>24 小时在线，随时为您提供心理健康支持</p>
-          </div>
-
-          <div class="feature-card" @click="goToRelax" style="cursor: pointer">
-            <el-icon :size="48" class="feature-icon">
-              <Headset />
-            </el-icon>
-            <h3>白噪音放松</h3>
-            <p>多种自然白噪音，帮助专注工作、改善睡眠质量</p>
           </div>
         </div>
       </div>
@@ -422,6 +424,15 @@ onUnmounted(() => {
       margin: 12px 0;
     }
 
+    .menu-section-label {
+      font-size: 11px;
+      color: #94a3b8;
+      font-weight: 600;
+      padding: 6px 12px 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
     .menu-item {
       display: flex;
       align-items: center;
@@ -440,6 +451,13 @@ onUnmounted(() => {
 
       .el-icon {
         font-size: 16px;
+      }
+
+      .menu-item-icon {
+        font-size: 14px;
+        width: 16px;
+        text-align: center;
+        display: inline-block;
       }
 
       &.menu-item-danger {
