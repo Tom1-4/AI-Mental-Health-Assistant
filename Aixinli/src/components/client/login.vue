@@ -22,10 +22,18 @@ const loginForm = reactive({
 const loading = ref(false);
 const showPlatformDialog = ref(false);
 const currentUser = ref<any>(null);
+const showTermsDialog = ref(false);
+const termsDialogTitle = ref("用户服务协议");
+const agreeToTerms = ref(false);
 
 const handleLogin = async () => {
   if (!loginForm.username || !loginForm.password) {
     ElMessage.warning("请输入用户名/邮箱和密码");
+    return;
+  }
+
+  if (!agreeToTerms.value) {
+    ElMessage.warning("请先阅读并同意用户服务协议和隐私政策");
     return;
   }
 
@@ -130,6 +138,17 @@ const goToRegister = () => {
           </el-button>
         </el-form-item>
 
+        <el-form-item class="terms-form-item">
+          <el-checkbox v-model="agreeToTerms" class="terms-checkbox">
+            <span class="terms-text">
+              我已阅读并同意
+              <el-link type="primary" underline="always" @click.stop="showTermsDialog = true; termsDialogTitle = '用户服务协议'">《用户服务协议》</el-link>
+              和
+              <el-link type="primary" underline="always" @click.stop="showTermsDialog = true; termsDialogTitle = '隐私政策'">《隐私政策》</el-link>
+            </span>
+          </el-checkbox>
+        </el-form-item>
+
         <div class="login-tips">
           <span class="tip-text">还没有账号？</span>
           <el-link type="primary" underline="never" @click="goToRegister"
@@ -138,6 +157,69 @@ const goToRegister = () => {
         </div>
       </el-form>
     </div>
+
+    <!-- 用户协议弹窗 -->
+    <el-dialog v-model="showTermsDialog" :title="termsDialogTitle" width="600px" :close-on-click-modal="false" class="terms-dialog">
+      <div class="terms-content" v-if="termsDialogTitle === '用户服务协议'">
+        <h3>AI 心理健康助手 — 用户服务协议</h3>
+        <p><em>更新日期：2026年7月</em></p>
+
+        <h4>一、服务说明</h4>
+        <p>AI 心理健康助手（以下简称"本平台"）是一个基于人工智能技术的心理健康辅助工具，旨在为用户提供情绪疏导、心理知识科普和自助式心理健康管理服务。</p>
+        <p><strong>重要提示：本平台提供的 AI 对话、心理测评和情绪分析等服务仅供心理健康教育和自我了解之目的，不能替代专业心理医生的诊断、治疗或处方。如您有严重的心理困扰或自杀念头，请立即拨打心理援助热线或前往正规医疗机构就诊。</strong></p>
+
+        <h4>二、用户义务</h4>
+        <p>1. 您承诺提供真实、准确的注册信息，并妥善保管账号密码。</p>
+        <p>2. 您承诺不利用本平台发布违法、有害、骚扰、诽谤、侵犯他人隐私或其他不当内容。</p>
+        <p>3. 您承诺不以任何方式干扰本平台的正常运行，包括但不限于使用自动化程序、恶意代码等。</p>
+        <p>4. 您理解并同意，您在本平台上的所有行为和内容由您自行承担法律责任。</p>
+
+        <h4>三、免责声明</h4>
+        <p>1. 本平台的 AI 对话内容由人工智能模型生成，仅供参考，不构成医疗建议。</p>
+        <p>2. 心理测评工具（如 PHQ-9、GAD-7、MBTI 等）仅为筛查和自我认知工具，不能作为确诊依据。</p>
+        <p>3. 本平台不保证服务完全无中断、及时、安全或无错误。</p>
+        <p>4. 在适用法律允许的范围内，本平台不对因使用服务而产生的任何间接、附带或衍生损失承担责任。</p>
+
+        <h4>四、账号管理</h4>
+        <p>1. 您可随时在个人中心申请注销账号，注销后有7天冷静期，期间重新登录可恢复账号。</p>
+        <p>2. 如发现账号被盗用或存在安全风险，请立即联系我们。</p>
+        <p>3. 对于违反本协议或存在异常行为的账号，本平台保留限制或终止服务的权利。</p>
+      </div>
+
+      <div class="terms-content" v-else>
+        <h3>AI 心理健康助手 — 隐私政策</h3>
+        <p><em>更新日期：2026年7月</em></p>
+
+        <h4>一、信息收集</h4>
+        <p>我们仅收集为您提供服务所必需的信息：</p>
+        <p>1. <strong>账号信息</strong>：用户名、邮箱地址、加密存储的密码。</p>
+        <p>2. <strong>使用数据</strong>：AI对话记录、心情日记、心理测评结果、树洞发言等您主动提交的内容。</p>
+        <p>3. <strong>设备信息</strong>：为保障服务安全，我们可能收集基本的访问日志（IP地址、浏览器类型、访问时间）。</p>
+
+        <h4>二、信息使用</h4>
+        <p>1. 您的对话记录和心理数据仅用于为您提供个性化服务（如情绪分析、心理评估、趋势报告）。</p>
+        <p>2. 匿名化后的统计数据可能用于改进服务质量，但不会关联到您的个人身份。</p>
+        <p>3. <strong>我们承诺：绝不向任何第三方出售、出租或交易您的个人数据。</strong></p>
+
+        <h4>三、数据存储与安全</h4>
+        <p>1. 您的数据存储在安全的服务器上，采用加密传输和存储技术保护。</p>
+        <p>2. 密码使用 bcrypt 加密存储，即使数据库泄露也无法还原明文密码。</p>
+        <p>3. 您可以随时导出您的全部数据（在个人中心点击"导出我的数据"）。</p>
+
+        <h4>四、用户权利</h4>
+        <p>1. <strong>访问权</strong>：您有权查看我们持有的您的个人数据。</p>
+        <p>2. <strong>导出权</strong>：您有权以结构化格式导出您的数据。</p>
+        <p>3. <strong>删除权</strong>：您可以通过注销账号来删除您的数据（7天冷静期后永久删除）。</p>
+        <p>4. <strong>撤回同意</strong>：您可以通过注销账号撤回对本隐私政策的同意。</p>
+
+        <h4>五、联系方式</h4>
+        <p>如对隐私政策有任何疑问，请通过系统管理员联系数据保护负责人。</p>
+      </div>
+
+      <template #footer>
+        <el-button type="primary" @click="showTermsDialog = false">我已了解</el-button>
+      </template>
+    </el-dialog>
 
     <!-- 管理员选择平台对话框 -->
     <el-dialog
@@ -544,6 +626,29 @@ const goToRegister = () => {
   }
 }
 
+.terms-form-item {
+  margin-bottom: 8px !important;
+
+  .terms-checkbox {
+    :deep(.el-checkbox__label) {
+      font-size: 13px;
+      color: #1e293b;
+      line-height: 1.5;
+      padding-left: 8px;
+    }
+
+    :deep(.el-checkbox__inner) {
+      border-color: #cbd5e1;
+      background: #ffffff;
+    }
+
+    .terms-text .el-link {
+      font-size: 13px;
+      vertical-align: baseline;
+    }
+  }
+}
+
 .login-tips {
   text-align: center;
   margin-top: 16px;
@@ -551,6 +656,53 @@ const goToRegister = () => {
 
   .tip-text {
     color: #64748b;
+  }
+}
+
+/* 用户协议弹窗 */
+.terms-dialog {
+  :deep(.el-dialog) {
+    border-radius: 16px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  :deep(.el-dialog__body) {
+    padding: 0 24px;
+    overflow-y: auto;
+    max-height: 55vh;
+  }
+}
+
+.terms-content {
+  font-size: 14px;
+  line-height: 1.8;
+  color: #334155;
+
+  h3 {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0 0 4px;
+  }
+
+  h4 {
+    font-size: 15px;
+    font-weight: 600;
+    color: #475569;
+    margin: 20px 0 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #e2e8f0;
+  }
+
+  p {
+    margin: 6px 0;
+  }
+
+  em {
+    color: #94a3b8;
+    font-size: 13px;
   }
 }
 
