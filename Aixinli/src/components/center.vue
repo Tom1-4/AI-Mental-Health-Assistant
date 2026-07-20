@@ -1,101 +1,125 @@
 <template>
   <div class="conversation-records">
+    <!-- 页面头部 -->
     <div class="page-header">
-      <h2 class="page-title">
-        <el-icon><ChatDotRound /></el-icon>
-        <span>对话记录</span>
-      </h2>
-      <p class="page-desc">查看所有用户的AI心理健康助手对话记录</p>
+      <div class="header-left">
+        <h2 class="page-title">
+          <el-icon :size="26"><ChatDotRound /></el-icon>
+          对话记录
+        </h2>
+        <p class="page-subtitle">浏览所有用户的 AI 心理健康助手对话历史</p>
+      </div>
     </div>
 
     <!-- 筛选区域 -->
-    <div class="filter-section">
-      <el-select
-        v-model="selectedUserId"
-        placeholder="按用户筛选"
-        clearable
-        filterable
-        @change="handleUserChange"
-        class="user-filter"
-      >
-        <el-option
-          v-for="user in userList"
-          :key="user.id"
-          :label="user.username"
-          :value="user.id"
-        />
-      </el-select>
-      <el-button @click="resetFilter">
-        <el-icon><Refresh /></el-icon>
-        重置筛选
-      </el-button>
-      <span class="total-count">共 {{ total }} 条记录</span>
+    <div class="filter-bar">
+      <div class="filter-left">
+        <el-select
+          v-model="selectedUserId"
+          placeholder="按用户筛选..."
+          clearable
+          filterable
+          size="default"
+          @change="handleUserChange"
+          class="user-filter"
+        >
+          <el-option
+            v-for="user in userList"
+            :key="user.id"
+            :label="user.username"
+            :value="user.id"
+          />
+        </el-select>
+        <el-button @click="resetFilter" class="reset-btn">
+          <el-icon><Refresh /></el-icon>
+          重置筛选
+        </el-button>
+      </div>
+      <div class="filter-right">
+        <span class="record-count">
+          <span class="count-num">{{ total }}</span>
+          <span class="count-label">条记录</span>
+        </span>
+      </div>
     </div>
 
     <!-- 加载状态 -->
-    <div v-if="loading" class="loading-container">
-      <el-icon class="is-loading"><Loading /></el-icon>
-      <span>加载中...</span>
+    <div v-if="loading" class="loading-state">
+      <el-icon class="loading-icon"><Loading /></el-icon>
+      <span>加载对话记录中...</span>
     </div>
 
-    <!-- 无数据提示 -->
-    <el-empty v-else-if="conversationList.length === 0" description="暂无对话记录" />
+    <!-- 空状态 -->
+    <div v-else-if="conversationList.length === 0" class="empty-state">
+      <el-empty description="暂无对话记录">
+        <template #image>
+          <div class="empty-illustration">
+            <el-icon :size="64"><ChatDotRound /></el-icon>
+          </div>
+        </template>
+      </el-empty>
+    </div>
 
-    <!-- 对话记录列表 -->
+    <!-- 对话列表 -->
     <div v-else class="conversation-list">
       <div
-        v-for="(record, index) in conversationList"
+        v-for="record in conversationList"
         :key="record.id"
-        class="conversation-item"
+        class="conversation-card"
       >
-        <!-- 用户信息头部 -->
-        <div class="conversation-header">
-          <div class="user-info">
-            <el-avatar :size="32" class="user-avatar">
-              {{ record.username?.charAt(0).toUpperCase() || 'U' }}
-            </el-avatar>
-            <div class="user-details">
-              <span class="username">{{ record.username || '未知用户' }}</span>
-              <span class="email">{{ record.email || '' }}</span>
+        <!-- 对话头部 -->
+        <div class="conv-header">
+          <div class="conv-user">
+            <div class="conv-avatar">
+              {{ record.username?.charAt(0)?.toUpperCase() || 'U' }}
+            </div>
+            <div class="conv-user-meta">
+              <span class="conv-username">{{ record.username || '未知用户' }}</span>
+              <span v-if="record.email" class="conv-email">{{ record.email }}</span>
             </div>
           </div>
-          <span class="conversation-time">{{ formatTime(record.created_at) }}</span>
+          <div class="conv-meta">
+            <span class="conv-id">#{{ record.id }}</span>
+            <span class="conv-time">{{ formatTime(record.created_at) }}</span>
+          </div>
         </div>
 
-        <!-- 一问一答内容 -->
-        <div class="qa-pair">
+        <!-- 对话气泡 -->
+        <div class="conv-bubbles">
           <!-- 用户提问 -->
-          <div class="question">
-            <div class="qa-label">
-              <el-icon><User /></el-icon>
-              <span>用户提问</span>
+          <div class="bubble-row user-row">
+            <div class="bubble-avatar user-bubble-avatar">
+              <el-icon :size="16"><User /></el-icon>
             </div>
-            <div class="qa-content">{{ record.user_message }}</div>
+            <div class="bubble-content user-bubble">
+              <div class="bubble-label">用户提问</div>
+              <div class="bubble-text">{{ record.user_message }}</div>
+            </div>
           </div>
 
-          <!-- AI回复 -->
-          <div class="answer">
-            <div class="qa-label ai-label">
-              <el-icon><Service /></el-icon>
-              <span>AI回复</span>
+          <!-- AI 回复 -->
+          <div class="bubble-row ai-row">
+            <div class="bubble-avatar ai-bubble-avatar">
+              <el-icon :size="16"><Service /></el-icon>
             </div>
-            <div class="qa-content ai-content">{{ record.ai_response }}</div>
+            <div class="bubble-content ai-bubble">
+              <div class="bubble-label">AI 回复</div>
+              <div class="bubble-text">{{ record.ai_response }}</div>
+            </div>
           </div>
         </div>
-
-        <!-- 分隔线 -->
-        <div v-if="index < conversationList.length - 1" class="item-divider" />
       </div>
     </div>
 
     <!-- 分页 -->
-    <div v-if="total > 0" class="pagination-container">
+    <div v-if="total > 0" class="pagination-wrapper">
       <el-pagination
         v-model:current-page="currentPage"
         v-model:page-size="pageSize"
         :total="total"
         :page-sizes="[10, 20, 50]"
         layout="total, sizes, prev, pager, next, jumper"
+        background
         @current-change="handlePageChange"
         @size-change="handleSizeChange"
       />
@@ -130,7 +154,7 @@ const loadConversationRecords = async () => {
       limit: pageSize.value,
       offset: (currentPage.value - 1) * pageSize.value
     })
-    
+
     if (result.success) {
       conversationList.value = result.data.history
       total.value = result.data.total
@@ -203,170 +227,330 @@ onMounted(() => {
 
 <style scoped lang="scss">
 .conversation-records {
-  padding: 0;
+  width: 100%;
 }
 
+/* ==================== 页面头部 ==================== */
 .page-header {
   margin-bottom: 24px;
 
-  .page-title {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 24px;
-    font-weight: 600;
-    color: #1e293b;
-    margin: 0 0 8px 0;
-  }
-
-  .page-desc {
-    color: #64748b;
-    font-size: 14px;
-    margin: 0;
-  }
-}
-
-.filter-section {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 24px;
-  padding: 16px;
-  background: #f8fafc;
-  border-radius: 12px;
-
-  .user-filter {
-    width: 200px;
-  }
-
-  .total-count {
-    margin-left: auto;
-    color: #64748b;
-    font-size: 14px;
-  }
-}
-
-.loading-container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 60px 0;
-  color: #64748b;
-  font-size: 14px;
-}
-
-.conversation-list {
-  background: #ffffff;
-  border-radius: 16px 16px 0 0;
-}
-
-.conversation-item {
-  padding: 20px 24px;
-
-  .conversation-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 16px;
-
-    .user-info {
+  .header-left {
+    .page-title {
       display: flex;
       align-items: center;
       gap: 12px;
-
-      .user-avatar {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        font-size: 14px;
-        font-weight: 600;
-      }
-
-      .user-details {
-        display: flex;
-        flex-direction: column;
-
-        .username {
-          font-weight: 600;
-          color: #1e293b;
-          font-size: 14px;
-        }
-
-        .email {
-          font-size: 12px;
-          color: #94a3b8;
-        }
-      }
+      margin: 0 0 6px 0;
+      font-size: 26px;
+      font-weight: 700;
+      color: #1e293b;
     }
 
-    .conversation-time {
+    .page-subtitle {
+      margin: 0 0 0 38px;
+      font-size: 14px;
+      color: #94a3b8;
+    }
+  }
+}
+
+/* ==================== 筛选栏 ==================== */
+.filter-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background: #ffffff;
+  border-radius: 14px;
+  border: 1px solid #f1f5f9;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  margin-bottom: 20px;
+}
+
+.filter-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  .user-filter {
+    width: 220px;
+  }
+
+  .reset-btn {
+    border: 1px solid #e2e8f0;
+    color: #64748b;
+    transition: all 0.2s ease;
+
+    &:hover {
+      border-color: #6366f1;
+      color: #6366f1;
+      background: #f5f3ff;
+    }
+  }
+}
+
+.filter-right {
+  .record-count {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+
+    .count-num {
+      font-size: 20px;
+      font-weight: 800;
+      color: #6366f1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .count-label {
+      font-size: 13px;
+      color: #94a3b8;
+      font-weight: 500;
+    }
+  }
+}
+
+/* ==================== 加载/空状态 ==================== */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 80px 0;
+  color: #94a3b8;
+  font-size: 14px;
+
+  .loading-icon {
+    font-size: 28px;
+    animation: spin 1s linear infinite;
+  }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.empty-state {
+  padding: 60px 0;
+
+  .empty-illustration {
+    color: #cbd5e1;
+  }
+}
+
+/* ==================== 对话列表 ==================== */
+.conversation-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.conversation-card {
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #f1f5f9;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+  transition: all 0.25s ease;
+
+  &:hover {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border-color: #e2e8f0;
+  }
+}
+
+/* 对话头部 */
+.conv-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  background: #fafbfc;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.conv-user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  .conv-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+  }
+
+  .conv-user-meta {
+    display: flex;
+    flex-direction: column;
+
+    .conv-username {
+      font-size: 14px;
+      font-weight: 700;
+      color: #1e293b;
+    }
+
+    .conv-email {
       font-size: 12px;
       color: #94a3b8;
     }
   }
+}
 
-  .qa-pair {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
+.conv-meta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
 
-  .question,
-  .answer {
-    border-radius: 12px;
-    overflow: hidden;
-  }
-
-  .question {
-    background: #f1f5f9;
-    border-left: 3px solid #3b82f6;
-  }
-
-  .answer {
-    background: #faf5ff;
-    border-left: 3px solid #8b5cf6;
-  }
-
-  .qa-label {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 16px;
+  .conv-id {
     font-size: 12px;
+    color: #cbd5e1;
     font-weight: 600;
-    color: #475569;
-    background: rgba(0, 0, 0, 0.03);
-
-    &.ai-label {
-      color: #7c3aed;
-    }
+    font-family: 'SF Mono', 'Fira Code', monospace;
   }
 
-  .qa-content {
-    padding: 12px 16px;
-    font-size: 14px;
-    line-height: 1.6;
-    color: #334155;
-    white-space: pre-wrap;
-    word-break: break-word;
-  }
-
-  .ai-content {
-    color: #1e293b;
-  }
-
-  .item-divider {
-    height: 1px;
-    background: #e2e8f0;
-    margin-top: 20px;
+  .conv-time {
+    font-size: 12px;
+    color: #94a3b8;
   }
 }
 
-.pagination-container {
+/* 对话气泡 */
+.conv-bubbles {
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.bubble-row {
+  display: flex;
+  gap: 12px;
+  max-width: 90%;
+
+  &.ai-row {
+    align-self: flex-end;
+    flex-direction: row-reverse;
+  }
+}
+
+.bubble-avatar {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  align-self: flex-start;
+  margin-top: 2px;
+}
+
+.user-bubble-avatar {
+  background: #6366f1;
+}
+
+.ai-bubble-avatar {
+  background: #8b5cf6;
+}
+
+.bubble-content {
+  padding: 14px 18px;
+  border-radius: 14px;
+  position: relative;
+
+  .bubble-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+  }
+
+  .bubble-text {
+    font-size: 14px;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+}
+
+.user-bubble {
+  background: #f1f5f9;
+  border-bottom-left-radius: 4px;
+
+  .bubble-label {
+    color: #6366f1;
+  }
+
+  .bubble-text {
+    color: #334155;
+  }
+}
+
+.ai-bubble {
+  background: #f5f3ff;
+  border-bottom-right-radius: 4px;
+
+  .bubble-label {
+    color: #8b5cf6;
+  }
+
+  .bubble-text {
+    color: #1e293b;
+  }
+}
+
+/* ==================== 分页 ==================== */
+.pagination-wrapper {
   display: flex;
   justify-content: center;
-  padding: 24px;
-  background: #ffffff;
-  border-top: 1px solid #e2e8f0;
-  border-radius: 0 0 16px 16px;
+  padding: 28px 0;
+
+  :deep(.el-pagination) {
+    --el-pagination-bg-color: #f8fafc;
+
+    .el-pager li {
+      border-radius: 8px;
+      margin: 0 3px;
+      font-weight: 600;
+      border: 1px solid #e2e8f0;
+      transition: all 0.2s ease;
+
+      &:hover {
+        border-color: #6366f1;
+        color: #6366f1;
+      }
+
+      &.is-active {
+        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+        border-color: transparent;
+        color: #ffffff;
+        box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+      }
+    }
+
+    .btn-prev,
+    .btn-next {
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+      background: #ffffff;
+
+      &:hover {
+        border-color: #6366f1;
+        color: #6366f1;
+      }
+    }
+  }
 }
 </style>

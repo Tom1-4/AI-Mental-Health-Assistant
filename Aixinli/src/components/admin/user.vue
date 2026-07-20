@@ -23,7 +23,7 @@ import {
 const userList = ref<UserData[]>([]);
 const loading = ref(false);
 const searchKeyword = ref("");
-const useMockData = ref(false); // 是否使用模拟数据
+const useMockData = ref(false);
 
 // 分页配置
 const currentPage = ref(1);
@@ -39,6 +39,7 @@ const currentUser = ref<{ id: number; role: string } | null>(null);
 
 // 格式化日期
 const formatDate = (dateString: string) => {
+  if (!dateString) return '—';
   const date = new Date(dateString);
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -52,22 +53,9 @@ const formatDate = (dateString: string) => {
 const generateMockData = (): UserData[] => {
   const mockData: UserData[] = [];
   const usernames = [
-    "张三",
-    "李四",
-    "王五",
-    "赵六",
-    "孙七",
-    "周八",
-    "吴九",
-    "郑十",
-    "陈十一",
-    "林十二",
-    "小明",
-    "小红",
-    "小刚",
-    "小丽",
-    "小华",
-    "小美",
+    "张三", "李四", "王五", "赵六", "孙七", "周八",
+    "吴九", "郑十", "陈十一", "林十二", "小明", "小红",
+    "小刚", "小丽", "小华", "小美",
   ];
 
   for (let i = 0; i < 20; i++) {
@@ -126,13 +114,11 @@ const fetchUserList = async (
   } catch (error: any) {
     console.error("获取用户列表失败:", error);
 
-    // 如果是404错误，说明后端接口未实现，使用模拟数据
     if (error.response?.status === 404 || error.code === "ERR_NETWORK") {
       ElMessage.warning("B端管理接口尚未实现，使用模拟数据展示");
       useMockData.value = true;
       const mockUsers = generateMockData();
 
-      // 客户端过滤
       let filteredUsers = mockUsers;
       if (keyword) {
         filteredUsers = mockUsers.filter(
@@ -142,7 +128,6 @@ const fetchUserList = async (
         );
       }
 
-      // 客户端分页
       const start = (page - 1) * pageSize.value;
       const end = start + pageSize.value;
       userList.value = filteredUsers.slice(start, end);
@@ -151,11 +136,10 @@ const fetchUserList = async (
     } else {
       ElMessage.error(error.response?.data?.message || "获取用户列表失败");
     }
-    } finally {
+  } finally {
     loading.value = false;
   }
 
-  // 同时获取MBTI数据
   fetchMbtiData();
 };
 
@@ -215,7 +199,25 @@ const getChatCountType = (count: number) => {
   if (count >= 200) return "warning";
   if (count >= 100) return "primary";
   if (count >= 50) return "info";
-  return "success";
+  return "";
+};
+
+// 用户头像颜色
+const avatarColors = [
+  '#6366f1', '#8b5cf6', '#ec4899', '#f43f5e', '#f97316',
+  '#eab308', '#22c55e', '#14b8a6', '#06b6d4', '#3b82f6',
+];
+const getAvatarColor = (username: string) => {
+  let hash = 0;
+  for (let i = 0; i < username.length; i++) {
+    hash = username.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return avatarColors[Math.abs(hash) % avatarColors.length];
+};
+
+// 获取用户名的首字符
+const getInitial = (username: string) => {
+  return username?.charAt(0)?.toUpperCase() || 'U';
 };
 
 // 删除用户
@@ -225,7 +227,6 @@ const handleDeleteUser = async (user: UserData) => {
     return;
   }
 
-  // 检查是否是当前登录用户
   if (currentUser.value && user.id === currentUser.value.id) {
     ElMessage.warning("不能删除自己的账号");
     return;
@@ -236,7 +237,7 @@ const handleDeleteUser = async (user: UserData) => {
       `确定要删除用户 "${user.username}" 吗？此操作不可恢复！`,
       "删除确认",
       {
-        confirmButtonText: "确定",
+        confirmButtonText: "确定删除",
         cancelButtonText: "取消",
         type: "warning",
         draggable: true,
@@ -247,7 +248,6 @@ const handleDeleteUser = async (user: UserData) => {
 
     if (response.success) {
       ElMessage.success("用户删除成功");
-      // 重新加载用户列表
       await fetchUserList(currentPage.value, searchKeyword.value);
     } else {
       ElMessage.error(response.message || "删除用户失败");
@@ -267,13 +267,11 @@ const handleUpdateRole = async (user: UserData, newRole: string) => {
     return;
   }
 
-  // 检查是否是当前登录用户
   if (currentUser.value && user.id === currentUser.value.id) {
     ElMessage.warning("不能修改自己的身份");
     return;
   }
 
-  // 检查角色是否改变
   if (user.role === newRole) {
     return;
   }
@@ -296,7 +294,6 @@ const handleUpdateRole = async (user: UserData, newRole: string) => {
 
     if (response.success) {
       ElMessage.success("用户身份修改成功");
-      // 更新本地数据
       user.role = newRole;
     } else {
       ElMessage.error(response.message || "修改用户身份失败");
@@ -305,10 +302,8 @@ const handleUpdateRole = async (user: UserData, newRole: string) => {
     if (error !== "cancel") {
       console.error("修改用户身份失败:", error);
       ElMessage.error(error.response?.data?.message || "修改用户身份失败");
-      // 恢复原来的角色
       await fetchUserList(currentPage.value, searchKeyword.value);
     } else {
-      // 取消后恢复原来的选择
       await fetchUserList(currentPage.value, searchKeyword.value);
     }
   }
@@ -333,7 +328,6 @@ const initCurrentUser = () => {
   }
 };
 
-// 页面加载时获取数据
 onMounted(() => {
   initCurrentUser();
   fetchUserList();
@@ -342,81 +336,94 @@ onMounted(() => {
 
 <template>
   <div class="user-management">
-    <!-- 页面标题 -->
+    <!-- 页面头部 -->
     <div class="page-header">
-      <h2 class="page-title">
-        <el-icon :size="24"><User /></el-icon>
-        用户管理
-        <el-tag
-          v-if="useMockData"
-          type="warning"
-          size="small"
-          style="margin-left: 12px"
-        >
-          模拟数据
-        </el-tag>
-      </h2>
-      <div class="page-stats">
-        <div class="stat-item">
-          <div class="stat-value">{{ total }}</div>
-          <div class="stat-label">总用户数</div>
+      <div class="header-left">
+        <h2 class="page-title">
+          <el-icon :size="26"><User /></el-icon>
+          用户管理
+          <el-tag
+            v-if="useMockData"
+            type="warning"
+            size="small"
+            effect="plain"
+            class="mock-tag"
+          >
+            模拟数据
+          </el-tag>
+        </h2>
+        <p class="page-subtitle">管理系统注册用户，查看用户活动与数据</p>
+      </div>
+      <div class="header-stats">
+        <div class="header-stat-item">
+          <div class="header-stat-value">{{ total }}</div>
+          <div class="header-stat-label">总用户</div>
         </div>
-        <div class="stat-item">
-          <div class="stat-value">{{ totalChatCount }}</div>
-          <div class="stat-label">总对话次数</div>
+        <div class="header-stat-divider"></div>
+        <div class="header-stat-item">
+          <div class="header-stat-value">{{ totalChatCount.toLocaleString() }}</div>
+          <div class="header-stat-label">总对话</div>
         </div>
       </div>
     </div>
 
-    <!-- 搜索和操作栏 -->
+    <!-- 工具栏 -->
     <div class="toolbar">
-      <div class="search-bar">
+      <div class="toolbar-left">
         <el-input
           v-model="searchKeyword"
-          placeholder="搜索用户名或邮箱"
+          placeholder="搜索用户名或邮箱..."
           clearable
-          size="large"
-          style="width: 300px"
+          size="default"
+          class="search-input"
           @keyup.enter="handleSearch"
+          @clear="handleSearch"
         >
           <template #prefix>
             <el-icon><Search /></el-icon>
           </template>
         </el-input>
-        <el-button
-          type="primary"
-          size="large"
-          :icon="Search"
-          @click="handleSearch"
-        >
+        <el-button type="primary" @click="handleSearch">
+          <el-icon><Search /></el-icon>
           搜索
         </el-button>
-        <el-button size="large" :icon="Refresh" @click="handleRefresh">
+        <el-button @click="handleRefresh">
+          <el-icon><Refresh /></el-icon>
           刷新
         </el-button>
       </div>
+      <div class="toolbar-right">
+        <span class="total-hint">共 <strong>{{ total }}</strong> 条记录</span>
+      </div>
     </div>
 
-    <!-- 用户表格 -->
-    <div class="table-container">
+    <!-- 数据表格 -->
+    <div class="table-wrapper">
       <el-table
         :data="userList"
         v-loading="loading"
+        element-loading-text="加载用户数据..."
         stripe
-        border
         :default-sort="{ prop: 'id', order: 'descending' }"
         :header-cell-style="{
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          color: '#ffffff',
+          background: '#f8fafc',
+          color: '#475569',
           fontWeight: 600,
+          fontSize: '13px',
+          borderBottom: '2px solid #e2e8f0',
         }"
-        style="width: 100%; table-layout: auto"
+        :cell-style="{
+          paddingTop: '12px',
+          paddingBottom: '12px',
+        }"
+        style="width: 100%"
         height="calc(100vh - 400px)"
       >
+        <!-- 序号 -->
         <el-table-column
           type="index"
-          label="序号"
-          width="80"
+          label="#"
+          width="60"
           align="center"
           :index="getIndex"
         >
@@ -425,30 +432,37 @@ onMounted(() => {
           </template>
         </el-table-column>
 
+        <!-- 用户名 -->
         <el-table-column
           prop="username"
-          label="用户名"
-          min-width="140"
-          align="center"
-        />
+          label="用户"
+          min-width="180"
+        >
+          <template #default="{ row }">
+            <div class="user-cell">
+              <div
+                class="user-avatar-sm"
+                :style="{ background: getAvatarColor(row.username) }"
+              >
+                {{ getInitial(row.username) }}
+              </div>
+              <div class="user-meta">
+                <span class="user-name">{{ row.username }}</span>
+                <span class="user-email">{{ row.email }}</span>
+              </div>
+            </div>
+          </template>
+        </el-table-column>
 
-        <el-table-column
-          prop="email"
-          label="邮箱"
-          min-width="200"
-          align="center"
-          show-overflow-tooltip
-        />
-
-        <el-table-column prop="role" label="身份" width="140" align="center">
+        <!-- 身份 -->
+        <el-table-column prop="role" label="身份" width="110" align="center">
           <template #default="{ row }">
             <el-select
               v-model="row.role"
               size="small"
-              :disabled="
-                useMockData || (currentUser && row.id === currentUser.id)
-              "
+              :disabled="useMockData || (currentUser && row.id === currentUser.id)"
               @change="handleRoleChange(row, $event)"
+              class="role-select"
             >
               <el-option label="普通用户" value="user" />
               <el-option label="管理员" value="admin" />
@@ -456,78 +470,85 @@ onMounted(() => {
           </template>
         </el-table-column>
 
+        <!-- MBTI -->
         <el-table-column prop="mbti" label="MBTI" width="100" align="center">
           <template #default="{ row }">
             <el-tag
               v-if="mbtiMap[row.id]"
               type="primary"
-              size="large"
-              effect="dark"
+              size="small"
+              effect="light"
+              class="mbti-tag"
             >
               {{ mbtiMap[row.id] }}
             </el-tag>
-            <span v-else style="color: #c0c4cc; font-size: 13px">未测试</span>
+            <span v-else class="no-mbti">—</span>
           </template>
         </el-table-column>
 
+        <!-- 对话次数 -->
         <el-table-column
           prop="chat_count"
           label="对话次数"
-          width="120"
+          width="110"
           align="center"
           sortable
         >
           <template #default="{ row }">
             <el-tag
               :type="getChatCountType(row.chat_count)"
-              size="large"
-              effect="plain"
+              size="small"
+              effect="light"
+              round
             >
               {{ row.chat_count }}
             </el-tag>
           </template>
         </el-table-column>
 
+        <!-- 最近登录 -->
         <el-table-column
           prop="last_login_time"
-          label="最近登录时间"
-          min-width="180"
+          label="最近登录"
+          min-width="170"
           align="center"
           sortable
         >
           <template #default="{ row }">
             <div class="time-cell">
-              <el-icon><Clock /></el-icon>
+              <el-icon class="time-icon"><Clock /></el-icon>
               <span>{{ formatDate(row.last_login_time) }}</span>
             </div>
           </template>
         </el-table-column>
 
+        <!-- 注册时间 -->
         <el-table-column
           prop="created_at"
           label="注册时间"
-          min-width="180"
+          min-width="170"
           align="center"
           sortable
         >
           <template #default="{ row }">
             <div class="time-cell">
-              <el-icon><Calendar /></el-icon>
+              <el-icon class="time-icon"><Calendar /></el-icon>
               <span>{{ formatDate(row.created_at) }}</span>
             </div>
           </template>
         </el-table-column>
 
-        <el-table-column label="操作" width="120" align="center" fixed="right">
+        <!-- 操作 -->
+        <el-table-column label="操作" width="100" align="center" fixed="right">
           <template #default="{ row }">
             <el-button
               type="danger"
               size="small"
               :icon="Delete"
-              :disabled="
-                useMockData || (currentUser && row.id === currentUser.id)
-              "
+              text
+              :disabled="useMockData || (currentUser && row.id === currentUser.id)"
               @click="handleDeleteUser(row)"
+              class="delete-btn"
             >
               删除
             </el-button>
@@ -537,13 +558,14 @@ onMounted(() => {
     </div>
 
     <!-- 分页 -->
-    <div class="pagination-container">
+    <div class="pagination-wrapper">
       <el-pagination
         v-model:current-page="currentPage"
         v-model:page-size="pageSize"
         :page-sizes="[10, 20, 50, 100]"
         :total="total"
         layout="total, sizes, prev, pager, next, jumper"
+        background
         @size-change="handleSizeChange"
         @current-change="handlePageChange"
       />
@@ -554,177 +576,291 @@ onMounted(() => {
 <style scoped lang="scss">
 .user-management {
   width: 100%;
-  animation: fadeIn 0.3s ease-in-out;
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
+/* ==================== 页面头部 ==================== */
 .page-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 32px;
-  padding-bottom: 24px;
-  border-bottom: 2px solid #e5e7eb;
+  align-items: flex-start;
+  margin-bottom: 24px;
 
-  .page-title {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin: 0;
-    font-size: 28px;
-    font-weight: 700;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+  .header-left {
+    .page-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 0 0 6px 0;
+      font-size: 26px;
+      font-weight: 700;
+      color: #1e293b;
+
+      .mock-tag {
+        font-weight: 500;
+        border-radius: 6px;
+      }
+    }
+
+    .page-subtitle {
+      margin: 0 0 0 38px;
+      font-size: 14px;
+      color: #94a3b8;
+    }
   }
 }
 
-.page-stats {
+/* 头部统计 */
+.header-stats {
   display: flex;
-  gap: 32px;
+  align-items: center;
+  gap: 20px;
+  padding: 14px 24px;
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #f1f5f9;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 
-  .stat-item {
+  .header-stat-item {
     text-align: center;
 
-    .stat-value {
-      font-size: 32px;
-      font-weight: 700;
-      color: #667eea;
-      line-height: 1;
-      margin-bottom: 8px;
+    .header-stat-value {
+      font-size: 24px;
+      font-weight: 800;
+      color: #6366f1;
+      line-height: 1.2;
+      font-variant-numeric: tabular-nums;
     }
 
-    .stat-label {
-      font-size: 14px;
-      color: #64748b;
+    .header-stat-label {
+      font-size: 12px;
+      color: #94a3b8;
+      font-weight: 500;
     }
+  }
+
+  .header-stat-divider {
+    width: 1px;
+    height: 36px;
+    background: #e2e8f0;
   }
 }
 
+/* ==================== 工具栏 ==================== */
 .toolbar {
-  margin-bottom: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 16px 20px;
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #f1f5f9;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
 
-  .search-bar {
-    display: flex;
-    gap: 12px;
-    align-items: center;
+.toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  .search-input {
+    width: 280px;
   }
 }
 
-.table-container {
-  margin-bottom: 24px;
-  border-radius: 12px;
+.toolbar-right {
+  .total-hint {
+    font-size: 13px;
+    color: #94a3b8;
+
+    strong {
+      color: #6366f1;
+      font-weight: 700;
+    }
+  }
+}
+
+/* ==================== 表格 ==================== */
+.table-wrapper {
+  background: #ffffff;
+  border-radius: 14px;
+  border: 1px solid #f1f5f9;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
   overflow: hidden;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-  width: 100%;
 
   :deep(.el-table) {
-    border-radius: 12px;
-    width: 100%;
+    --el-table-border-color: #f1f5f9;
+    border: none;
 
+    // 表头
+    .el-table__header {
+      th {
+        padding: 14px 0;
+        font-size: 13px;
+        letter-spacing: 0.3px;
+        text-transform: uppercase;
+        font-size: 12px;
+      }
+    }
+
+    // 条纹行
     &.el-table--striped .el-table__body tr.el-table__row--striped td {
-      background-color: #f8fafc;
+      background-color: #fafbfc;
     }
 
+    // 行悬浮
     .el-table__body tr:hover > td {
-      background-color: #f1f5f9 !important;
+      background-color: #f5f3ff !important;
+      transition: background-color 0.15s ease;
     }
 
-    .el-table__body-wrapper {
-      overflow-x: auto;
-      overflow-y: auto;
-    }
-  }
-
-  :deep(.el-table__header-wrapper) {
-    overflow-x: auto;
-  }
-
-  :deep(.el-table__header) {
-    th {
-      padding: 16px 0;
-      font-size: 15px;
-      letter-spacing: 0.5px;
-      white-space: nowrap;
-    }
-  }
-
-  :deep(.el-table__body) {
-    td {
-      padding: 14px 0;
+    // 单元格
+    .el-table__body td {
       font-size: 14px;
+      color: #334155;
     }
-  }
 
-  .index-cell {
-    font-weight: 600;
-    color: #667eea;
-    font-size: 16px;
-  }
-
-  .username-cell {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    white-space: nowrap;
-
-    .username-text {
-      font-weight: 600;
-      color: #1e293b;
+    // 排序图标
+    .caret-wrapper {
+      height: 20px;
     }
-  }
-
-  .time-cell {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    color: #64748b;
-    font-size: 13px;
-    white-space: nowrap;
   }
 }
 
-.pagination-container {
+// 序号
+.index-cell {
+  font-weight: 700;
+  color: #6366f1;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+// 用户信息
+.user-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  .user-avatar-sm {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 700;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  }
+
+  .user-meta {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+
+    .user-name {
+      font-weight: 600;
+      color: #1e293b;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+
+    .user-email {
+      font-size: 12px;
+      color: #94a3b8;
+      line-height: 1.4;
+    }
+  }
+}
+
+// 身份选择
+.role-select {
+  :deep(.el-input__wrapper) {
+    border-radius: 8px;
+    box-shadow: none;
+    border: 1px solid #e2e8f0;
+
+    &:hover {
+      border-color: #6366f1;
+    }
+  }
+}
+
+// MBTI标签
+.mbti-tag {
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  border-radius: 6px;
+}
+
+.no-mbti {
+  color: #cbd5e1;
+  font-size: 14px;
+}
+
+// 时间
+.time-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #64748b;
+  font-size: 13px;
+  white-space: nowrap;
+
+  .time-icon {
+    color: #94a3b8;
+    font-size: 14px;
+  }
+}
+
+// 删除按钮
+.delete-btn {
+  &:hover {
+    background: #fef2f2;
+  }
+}
+
+/* ==================== 分页 ==================== */
+.pagination-wrapper {
   display: flex;
   justify-content: center;
   padding: 20px 0;
 
   :deep(.el-pagination) {
+    --el-pagination-bg-color: #f8fafc;
+    --el-pagination-button-bg-color: #ffffff;
+
     .el-pager li {
       border-radius: 8px;
-      margin: 0 4px;
-      transition: all 0.3s ease;
+      margin: 0 3px;
+      font-weight: 600;
+      border: 1px solid #e2e8f0;
+      transition: all 0.2s ease;
 
       &:hover {
-        background-color: #e0e7ff;
+        border-color: #6366f1;
+        color: #6366f1;
       }
 
       &.is-active {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+        border-color: transparent;
         color: #ffffff;
+        box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
       }
     }
 
     .btn-prev,
     .btn-next {
       border-radius: 8px;
-      margin: 0 4px;
+      border: 1px solid #e2e8f0;
+      background: #ffffff;
 
       &:hover {
-        background-color: #e0e7ff;
+        border-color: #6366f1;
+        color: #6366f1;
       }
     }
   }
