@@ -1,21 +1,4 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import Back from '../components/admin/back.vue'
-import Dashboard from '../components/admin/dashboard.vue'
-import User from '../components/admin/user.vue'
-import UserStatus from '../components/admin/userStatus.vue'
-import Login from '../components/client/login.vue'
-import Register from '../components/client/register.vue'
-import Center from '../components/center.vue'
-import Home from '../components/client/home.vue'
-import Chat from '../components/client/chat.vue'
-import Profile from '../components/client/profile.vue'
-import Treehole from '../components/client/treehole.vue'
-import PostDetail from '../components/client/treehole/PostDetail.vue'
-import Diary from '../components/client/diary.vue'
-import MoodDiaryDetail from '../components/client/mood/MoodDiaryDetail.vue'
-import Mbti from '../components/client/mbti.vue'
-import Screening from '../components/client/screening.vue'
-import Error from '../components/404.vue'
 import { useAuthStore } from '../stores/auth'
 
 // 路由守卫：B端登录验证
@@ -49,14 +32,14 @@ const routes = [
   // C端登录页
   {
     path: '/',
-    component: Login,
+    component: () => import('../components/client/login.vue'),
     meta: {
       title: 'C端登录'
     }
   },
   {
     path: '/register',
-    component: Register,
+    component: () => import('../components/client/register.vue'),
     meta: {
       title: '注册'
     }
@@ -65,7 +48,7 @@ const routes = [
   // C端路由
   {
     path: '/home',
-    component: Home,
+    component: () => import('../components/client/home.vue'),
     meta: {
       title: '首页',
       clientAuth: true
@@ -74,7 +57,7 @@ const routes = [
   },
   {
     path: '/chat',
-    component: Chat,
+    component: () => import('../components/client/chat.vue'),
     meta: {
       title: '对话',
       clientAuth: true
@@ -83,7 +66,7 @@ const routes = [
   },
   {
     path: '/treehole',
-    component: Treehole,
+    component: () => import('../components/client/treehole.vue'),
     meta: {
       title: '心灵树洞',
       clientAuth: true
@@ -92,7 +75,7 @@ const routes = [
   },
   {
     path: '/treehole/post/:id',
-    component: PostDetail,
+    component: () => import('../components/client/treehole/PostDetail.vue'),
     meta: {
       title: '帖子详情',
       clientAuth: true
@@ -101,7 +84,7 @@ const routes = [
   },
   {
     path: '/diary',
-    component: Diary,
+    component: () => import('../components/client/diary.vue'),
     meta: {
       title: '心情日记',
       clientAuth: true
@@ -110,7 +93,7 @@ const routes = [
   },
   {
     path: '/diary/:id',
-    component: MoodDiaryDetail,
+    component: () => import('../components/client/mood/MoodDiaryDetail.vue'),
     meta: {
       title: '日记详情',
       clientAuth: true
@@ -119,7 +102,7 @@ const routes = [
   },
   {
     path: '/profile',
-    component: Profile,
+    component: () => import('../components/client/profile.vue'),
     meta: {
       title: '个人中心',
       clientAuth: true
@@ -128,7 +111,7 @@ const routes = [
   },
   {
     path: '/mbti',
-    component: Mbti,
+    component: () => import('../components/client/mbti.vue'),
     meta: {
       title: 'MBTI人格测试',
       clientAuth: true
@@ -137,7 +120,7 @@ const routes = [
   },
   {
     path: '/phq9',
-    component: Screening,
+    component: () => import('../components/client/screening.vue'),
     meta: {
       title: 'PHQ-9 抑郁筛查',
       clientAuth: true
@@ -146,7 +129,7 @@ const routes = [
   },
   {
     path: '/gad7',
-    component: Screening,
+    component: () => import('../components/client/screening.vue'),
     meta: {
       title: 'GAD-7 焦虑筛查',
       clientAuth: true
@@ -166,7 +149,7 @@ const routes = [
   // B端路由
   {
     path: '/back',
-    component: Back,
+    component: () => import('../components/admin/back.vue'),
     meta: {
       title: '后台管理',
       requiresAuth: true
@@ -179,28 +162,28 @@ const routes = [
       },
       {
         path: 'dashboard',
-        component: Dashboard,
+        component: () => import('../components/admin/dashboard.vue'),
         meta: {
           title: '数据分析'
         }
       },
       {
         path: 'user',
-        component: User,
+        component: () => import('../components/admin/user.vue'),
         meta: {
           title: '用户管理'
         }
       },
       {
         path: 'user-status',
-        component: UserStatus,
+        component: () => import('../components/admin/userStatus.vue'),
         meta: {
           title: '用户状态'
         }
       },
       {
         path: 'center',
-        component: Center,
+        component: () => import('../components/center.vue'),
         meta: {
           title: '控制中心'
         }
@@ -209,7 +192,7 @@ const routes = [
   },
   {
     path: '/:pathMatch(.*)*',
-    component: Error,
+    component: () => import('../components/404.vue'),
     meta: {
       title: '404 - 页面不存在'
     }
